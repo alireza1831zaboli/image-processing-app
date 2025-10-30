@@ -23,10 +23,14 @@ from PySide6.QtCore import Qt, Signal
 class ControlPanel(QWidget):
     """پنل کنترل فیلترها"""
 
-    filter_changed = Signal(str, dict)  # سیگنال تغییر فیلتر
+    # سیگنال‌ها
+    filter_changed = Signal(str, dict)
     load_clicked = Signal()
     save_clicked = Signal()
     reset_clicked = Signal()
+    zoom_in_clicked = Signal()  # سیگنال جدید
+    zoom_out_clicked = Signal()  # سیگنال جدید
+    zoom_reset_clicked = Signal()  # سیگنال جدید
 
     def __init__(self):
         super().__init__()
@@ -310,21 +314,30 @@ class ControlPanel(QWidget):
         apply_btn.clicked.connect(self.on_filter_changed)
         layout.addWidget(apply_btn)
 
-        # دکمه‌های Zoom
-        zoom_layout = QHBoxLayout()
-        zoom_in_btn = QPushButton("🔍+")
-        zoom_out_btn = QPushButton("🔍-")
-        zoom_reset_btn = QPushButton("⊙")
+        # دکمه‌های Zoom - اصلاح شده
+        zoom_group = QGroupBox("Zoom و حرکت")
+        zoom_layout = QGridLayout(zoom_group)
 
-        zoom_layout.addWidget(zoom_in_btn)
-        zoom_layout.addWidget(zoom_out_btn)
-        zoom_layout.addWidget(zoom_reset_btn)
-        layout.addLayout(zoom_layout)
+        zoom_in_btn = QPushButton("🔍 بزرگ‌نمایی")
+        zoom_out_btn = QPushButton("🔍 کوچک‌نمایی")
+        zoom_reset_btn = QPushButton("⊙ بازنشانی")
 
-        # اتصال سیگنال‌های zoom به mainwindow
-        zoom_in_btn.clicked.connect(lambda: self.parent().zoom_in())
-        zoom_out_btn.clicked.connect(lambda: self.parent().zoom_out())
-        zoom_reset_btn.clicked.connect(lambda: self.parent().reset_zoom())
+        # اتصال به سیگنال‌ها
+        zoom_in_btn.clicked.connect(self.zoom_in_clicked.emit)
+        zoom_out_btn.clicked.connect(self.zoom_out_clicked.emit)
+        zoom_reset_btn.clicked.connect(self.zoom_reset_clicked.emit)
+
+        zoom_layout.addWidget(zoom_in_btn, 0, 0)
+        zoom_layout.addWidget(zoom_out_btn, 0, 1)
+        zoom_layout.addWidget(zoom_reset_btn, 1, 0, 1, 2)
+
+        layout.addWidget(zoom_group)
+
+        # راهنما
+        help_label = QLabel("💡 نکات:\\n• Mouse Wheel: Zoom\\n• Click + Drag: حرکت")
+        help_label.setStyleSheet("font-size: 10px; color: #888888; padding: 10px;")
+        help_label.setWordWrap(True)
+        layout.addWidget(help_label)
 
         return group
 

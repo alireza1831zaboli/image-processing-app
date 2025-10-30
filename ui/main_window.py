@@ -52,6 +52,12 @@ class MainWindow(QMainWindow):
         self.control_panel.load_clicked.connect(self.load_image)
         self.control_panel.save_clicked.connect(self.save_image)
         self.control_panel.reset_clicked.connect(self.reset_image)
+
+        # اتصال سیگنال‌های zoom - اصلاح شده
+        self.control_panel.zoom_in_clicked.connect(self.zoom_in)
+        self.control_panel.zoom_out_clicked.connect(self.zoom_out)
+        self.control_panel.zoom_reset_clicked.connect(self.reset_zoom)
+
         main_layout.addWidget(self.control_panel, 1)
 
         # پنل تصاویر
@@ -113,9 +119,9 @@ class MainWindow(QMainWindow):
                 self.current_image = self.original_image.copy()
                 self.original_viewer.set_image(self.original_image)
                 self.processed_viewer.set_image(self.current_image)
-                self.update_status("تصویر بارگذاری شد", config.Colors.SUCCESS)
+                self.update_status("تصویر بارگذاری شد ✓", config.Colors.SUCCESS)
             else:
-                self.update_status("خطا در بارگذاری", config.Colors.ERROR)
+                self.update_status("خطا در بارگذاری تصویر", config.Colors.ERROR)
 
     def apply_filter(self, filter_name, params):
         """اعمال فیلتر"""
@@ -165,21 +171,27 @@ class MainWindow(QMainWindow):
         if file_path:
             success = ImageManager.save_image(file_path, self.current_image)
             if success:
-                self.update_status("تصویر ذخیره شد", config.Colors.SUCCESS)
+                self.update_status("تصویر ذخیره شد ✓", config.Colors.SUCCESS)
             else:
-                self.update_status("خطا در ذخیره", config.Colors.ERROR)
+                self.update_status("خطا در ذخیره تصویر", config.Colors.ERROR)
 
     def zoom_in(self):
-        """Zoom in"""
+        """Zoom in - برای هر دو viewer"""
+        self.original_viewer.zoom_in()
         self.processed_viewer.zoom_in()
+        self.update_status("بزرگ‌نمایی انجام شد", config.Colors.INFO)
 
     def zoom_out(self):
-        """Zoom out"""
+        """Zoom out - برای هر دو viewer"""
+        self.original_viewer.zoom_out()
         self.processed_viewer.zoom_out()
+        self.update_status("کوچک‌نمایی انجام شد", config.Colors.INFO)
 
     def reset_zoom(self):
-        """Reset zoom"""
+        """Reset zoom - برای هر دو viewer"""
+        self.original_viewer.reset_zoom()
         self.processed_viewer.reset_zoom()
+        self.update_status("Zoom بازنشانی شد", config.Colors.INFO)
 
     def update_status(self, message, color):
         """به‌روزرسانی وضعیت"""
