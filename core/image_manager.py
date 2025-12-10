@@ -1,6 +1,6 @@
 """
-مدیریت تصاویر
-Image Manager
+مدیریت تصاویر - با پشتیبانی Convolution
+Image Manager - با فیلترهای کانوولوشنی
 """
 
 import cv2
@@ -14,6 +14,7 @@ from filters.edge_filters import FILTER_MAP as EDGE_FILTERS
 from filters.photogrammetry import FILTER_MAP as PHOTO_FILTERS
 from filters.creative_filters import FILTER_MAP as CREATIVE_FILTERS
 from filters.color_filters import FILTER_MAP as COLOR_FILTERS
+from filters.convolution_filters import FILTER_MAP as CONV_FILTERS  # جدید!
 
 
 class ImageManager:
@@ -26,6 +27,7 @@ class ImageManager:
         **PHOTO_FILTERS,
         **CREATIVE_FILTERS,
         **COLOR_FILTERS,
+        **CONV_FILTERS,  # اضافه شد!
     }
 
     @staticmethod
@@ -64,7 +66,6 @@ class ImageManager:
             else:
                 print(f"Filter not found: {filter_name}")
                 return image.copy()
-
         except Exception as e:
             print(f"Error applying filter {filter_name}: {e}")
             return image.copy()
@@ -78,6 +79,7 @@ class ImageManager:
             "photo": list(PHOTO_FILTERS.keys()),
             "creative": list(CREATIVE_FILTERS.keys()),
             "color": list(COLOR_FILTERS.keys()),
+            "convolution": list(CONV_FILTERS.keys()),  # جدید!
         }
 
     @staticmethod

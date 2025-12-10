@@ -1,6 +1,6 @@
 """
-پنل کنترل ساده با پشتیبانی تنظیمات
-Simple Control Panel with Settings Support
+پنل کنترل فشرده و بهینه شده
+Compact and Optimized Control Panel
 """
 
 from PySide6.QtWidgets import (
@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QDoubleSpinBox,
     QGroupBox,
-    QScrollArea,
+    QGridLayout,
 )
 from PySide6.QtCore import Qt, Signal
 import config
@@ -33,9 +33,8 @@ except ImportError:
             return key
 
 
+# در ابتدای فایل، سیگنال جدید اضافه کن:
 class ControlPanel(QWidget):
-    """پنل کنترل"""
-
     filter_changed = Signal(str, dict)
     load_clicked = Signal()
     save_clicked = Signal()
@@ -44,110 +43,82 @@ class ControlPanel(QWidget):
     zoom_in_clicked = Signal()
     zoom_out_clicked = Signal()
     zoom_reset_clicked = Signal()
+    custom_kernel_clicked = Signal()
 
     def __init__(self):
         super().__init__()
-
         if USE_TRANSLATIONS:
             self.settings = get_settings()
             self.current_lang = self.settings.get("language", "fa")
         else:
             self.current_lang = "fa"
-
         self.setup_ui()
 
     def setup_ui(self):
-        """ساخت UI"""
+        """ساخت UI فشرده"""
         main_layout = QVBoxLayout(self)
-        main_layout.setSpacing(10)
-        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(8)
+        main_layout.setContentsMargins(8, 8, 8, 8)
 
-        # عنوان
+        # عنوان کوچک
         if USE_TRANSLATIONS:
             title_text = Translations.get("control_panel", self.current_lang)
         else:
-            title_text = "پنل کنترل"
+            title_text = "Control Panel"
 
-        title = QLabel(title_text)
-        title.setAlignment(Qt.AlignCenter)
+        title = QLabel(f"⚙️ {title_text}")
         title.setStyleSheet(
             f"""
             QLabel {{
                 color: {config.Colors.PRIMARY};
-                font-size: 18px;
-                font-weight: bold;
-                padding: 10px;
-                background-color: {config.Colors.WIDGET};
-                border-radius: 8px;
+                font-size: {config.Fonts.SIZE_HEADER}px;
+                font-weight: 600;
+                padding: 6px;
             }}
         """
         )
         main_layout.addWidget(title)
 
-        # Scroll Area
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        # گروه فیلترها - فشرده
+        filter_group = self.create_filter_group()
+        main_layout.addWidget(filter_group)
 
-        scroll_content = QWidget()
-        scroll_layout = QVBoxLayout(scroll_content)
-        scroll_layout.setSpacing(10)
+        # پارامترها - فشرده
+        params_group = self.create_params_group()
+        main_layout.addWidget(params_group)
 
-        # گروه انتخاب فیلتر
-        self.filter_group = self.create_filter_group()
-        scroll_layout.addWidget(self.filter_group)
+        # عملیات - Grid Layout برای فشردگی
+        operations_group = self.create_operations_group()
+        main_layout.addWidget(operations_group)
 
-        # گروه تنظیمات فیلتر
-        self.params_group = self.create_params_group()
-        scroll_layout.addWidget(self.params_group)
+        # Zoom - فشرده
+        zoom_group = self.create_zoom_group()
+        main_layout.addWidget(zoom_group)
 
-        # گروه عملیات
-        self.operations_group = self.create_operations_group()
-        scroll_layout.addWidget(self.operations_group)
-
-        # گروه Zoom
-        self.zoom_group = self.create_zoom_group()
-        scroll_layout.addWidget(self.zoom_group)
-
-        scroll_layout.addStretch()
-        scroll.setWidget(scroll_content)
-        main_layout.addWidget(scroll)
+        main_layout.addStretch()
 
         # راهنما
-        if USE_TRANSLATIONS:
-            hint_text = Translations.get("hint_mousewheel", self.current_lang)
-        else:
-            hint_text = "Mouse Wheel: Zoom"
-
-        self.hint_label = QLabel(hint_text)
-        self.hint_label.setWordWrap(True)
-        self.hint_label.setStyleSheet(
+        hint = QLabel("💡 Mouse Wheel: Zoom")
+        hint.setStyleSheet(
             f"""
             QLabel {{
-                color: {config.Colors.TEXT_SECONDARY};
-                font-size: 10px;
-                padding: 5px;
-                background-color: {config.Colors.BACKGROUND};
-                border-radius: 4px;
+                color: {config.Colors.TEXT_MUTED};
+                font-size: {config.Fonts.SIZE_SMALL}px;
+                padding: 4px;
             }}
         """
         )
-        main_layout.addWidget(self.hint_label)
+        main_layout.addWidget(hint)
 
     def create_filter_group(self):
-        """گروه انتخاب فیلتر"""
-        if USE_TRANSLATIONS:
-            group_title = "📁 " + Translations.get(
-                "filter_selection", self.current_lang
-            )
-        else:
-            group_title = "📁 انتخاب فیلتر"
-
-        group = QGroupBox(group_title)
+        """گروه فیلتر - فشرده"""
+        group = QGroupBox("🎨 Filters")
         layout = QVBoxLayout()
+        layout.setSpacing(6)
 
-        # دسته‌بندی‌ها
+        # دسته‌بندی
         self.category_combo = QComboBox()
+        self.category_combo.setMinimumHeight(config.Layout.CONTROL_HEIGHT)
         if USE_TRANSLATIONS:
             self.category_combo.addItem(
                 "🎨 " + Translations.get("category_base", self.current_lang), "base"
@@ -164,183 +135,136 @@ class ControlPanel(QWidget):
                 "🎭 " + Translations.get("category_advanced", self.current_lang),
                 "advanced",
             )
+            self.category_combo.addItem(
+                "🔲 " + Translations.get("category_Convolution", self.current_lang),
+                "convolution",
+            )
+
         else:
-            self.category_combo.addItem("🎨 پایه", "base")
-            self.category_combo.addItem("✨ لبه‌یابی", "enhancement")
-            self.category_combo.addItem("📷 فتوگرامتری", "photogrammetry")
-            self.category_combo.addItem("🎭 خلاقانه", "advanced")
+            self.category_combo.addItem("🎨 Base", "base")
+            self.category_combo.addItem("✨ Enhancement", "enhancement")
+            self.category_combo.addItem("📷 Photogrammetry", "photogrammetry")
+            self.category_combo.addItem("🎭 Creative", "advanced")
+            self.category_combo.addItem("🔲 Convolution", "convolution")
 
         self.category_combo.currentIndexChanged.connect(self.on_category_changed)
         layout.addWidget(self.category_combo)
 
-        # فیلترها
         self.filter_combo = QComboBox()
-        self.filter_combo.blockSignals(True)  # موقتاً signal ها رو غیرفعال کن
+        self.filter_combo.setMinimumHeight(config.Layout.CONTROL_HEIGHT)
+        self.filter_combo.blockSignals(True)
         self.filter_combo.currentIndexChanged.connect(self.on_filter_changed)
         layout.addWidget(self.filter_combo)
 
         group.setLayout(layout)
         self.populate_filters()
-        self.filter_combo.blockSignals(False)  # signal ها رو دوباره فعال کن
+        self.filter_combo.blockSignals(False)
         return group
 
-        # self.filter_combo = QComboBox()
-        # self.filter_combo.currentIndexChanged.connect(self.on_filter_changed)
-        # layout.addWidget(self.filter_combo)
-
-        # group.setLayout(layout)
-        # self.populate_filters()
-        # return group
-
     def create_params_group(self):
-        """گروه تنظیمات"""
-        if USE_TRANSLATIONS:
-            group_title = "⚙️ " + Translations.get("settings_label", self.current_lang)
-        else:
-            group_title = "⚙️ تنظیمات"
-
-        group = QGroupBox(group_title)
+        """گروه پارامترها - فشرده"""
+        group = QGroupBox("⚙️ Parameters")
         layout = QVBoxLayout()
+        layout.setSpacing(6)
 
-        # Blur Amount
-        blur_layout = QHBoxLayout()
-        if USE_TRANSLATIONS:
-            blur_label_text = Translations.get("blur_amount", self.current_lang) + ":"
-        else:
-            blur_label_text = "اندازه Blur:"
-
-        blur_label = QLabel(blur_label_text)
+        # Blur - inline
+        blur_container = QHBoxLayout()
+        blur_container.setSpacing(6)
+        blur_label = QLabel("Blur:")
+        blur_label.setFixedWidth(45)
         self.blur_slider = QSlider(Qt.Horizontal)
         self.blur_slider.setRange(1, 30)
         self.blur_slider.setValue(15)
+        self.blur_slider.setMinimumHeight(24)
         self.blur_slider.valueChanged.connect(self.on_params_changed)
         self.blur_value_label = QLabel("15")
-        self.blur_value_label.setFixedWidth(30)
-        blur_layout.addWidget(blur_label)
-        blur_layout.addWidget(self.blur_slider)
-        blur_layout.addWidget(self.blur_value_label)
-        layout.addLayout(blur_layout)
-
+        self.blur_value_label.setFixedWidth(25)
+        self.blur_value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.blur_slider.valueChanged.connect(
             lambda v: self.blur_value_label.setText(str(v))
         )
+        blur_container.addWidget(blur_label)
+        blur_container.addWidget(self.blur_slider)
+        blur_container.addWidget(self.blur_value_label)
+        layout.addLayout(blur_container)
 
-        # CLAHE
-        clahe_layout = QHBoxLayout()
-        if USE_TRANSLATIONS:
-            clahe_label_text = Translations.get("clahe_value", self.current_lang) + ":"
-        else:
-            clahe_label_text = "CLAHE:"
-
-        clahe_label = QLabel(clahe_label_text)
+        # CLAHE - inline
+        clahe_container = QHBoxLayout()
+        clahe_container.setSpacing(6)
+        clahe_label = QLabel("CLAHE:")
+        clahe_label.setFixedWidth(45)
         self.clahe_spin = QDoubleSpinBox()
         self.clahe_spin.setRange(1.0, 5.0)
         self.clahe_spin.setSingleStep(0.1)
         self.clahe_spin.setValue(2.0)
+        self.clahe_spin.setMinimumHeight(config.Layout.CONTROL_HEIGHT)
         self.clahe_spin.valueChanged.connect(self.on_params_changed)
-        clahe_layout.addWidget(clahe_label)
-        clahe_layout.addWidget(self.clahe_spin)
-        layout.addLayout(clahe_layout)
+        clahe_container.addWidget(clahe_label)
+        clahe_container.addWidget(self.clahe_spin)
+        layout.addLayout(clahe_container)
 
         group.setLayout(layout)
         return group
 
     def create_operations_group(self):
-        """گروه عملیات"""
-        if USE_TRANSLATIONS:
-            group_title = "🔧 " + Translations.get("operations", self.current_lang)
-        else:
-            group_title = "🔧 عملیات"
+        """گروه عملیات - Grid برای فشردگی"""
+        group = QGroupBox("🔧 Operations")
+        layout = QGridLayout()
+        layout.setSpacing(6)
 
-        group = QGroupBox(group_title)
-        layout = QVBoxLayout()
-        layout.setSpacing(8)
-
-        # بارگذاری
-        if USE_TRANSLATIONS:
-            load_text = "📁 " + Translations.get("load_image", self.current_lang)
-        else:
-            load_text = "📁 بارگذاری تصویر"
-
-        self.load_btn = QPushButton(load_text)
+        # دکمه‌های کوچک‌تر
+        self.load_btn = QPushButton("📁 Load")
+        self.load_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.load_btn.clicked.connect(self.load_clicked.emit)
-        layout.addWidget(self.load_btn)
 
-        # ذخیره
-        if USE_TRANSLATIONS:
-            save_text = "💾 " + Translations.get("save_image", self.current_lang)
-        else:
-            save_text = "💾 ذخیره تصویر"
-
-        self.save_btn = QPushButton(save_text)
+        self.save_btn = QPushButton("💾 Save")
+        self.save_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.save_btn.clicked.connect(self.save_clicked.emit)
-        layout.addWidget(self.save_btn)
 
-        # تنظیمات
-        if USE_TRANSLATIONS:
-            settings_text = "⚙️ " + Translations.get("settings", self.current_lang)
-        else:
-            settings_text = "⚙️ تنظیمات"
-
-        self.settings_btn = QPushButton(settings_text)
+        self.settings_btn = QPushButton("⚙️ Settings")
+        self.settings_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.settings_btn.clicked.connect(self.settings_clicked.emit)
-        layout.addWidget(self.settings_btn)
+
+        # Grid 2x2
+        layout.addWidget(self.load_btn, 0, 0)
+        layout.addWidget(self.save_btn, 0, 1)
+        layout.addWidget(self.settings_btn, 1, 0, 1, 2)  # full width
 
         group.setLayout(layout)
         return group
 
     def create_zoom_group(self):
-        """گروه Zoom"""
-        if USE_TRANSLATIONS:
-            group_title = "🔍 " + Translations.get("zoom_pan", self.current_lang)
-        else:
-            group_title = "🔍 زوم و حرکت"
+        """گروه Zoom - فشرده Grid"""
+        group = QGroupBox("🔍 Zoom")
+        layout = QGridLayout()
+        layout.setSpacing(6)
 
-        group = QGroupBox(group_title)
-        layout = QHBoxLayout()
-
-        # Zoom In
-        if USE_TRANSLATIONS:
-            zoom_in_text = "🔍 " + Translations.get("zoom_in", self.current_lang)
-        else:
-            zoom_in_text = "🔍 بزرگ‌نمایی"
-
-        self.zoom_in_btn = QPushButton(zoom_in_text)
+        # دکمه‌های کوچک
+        self.zoom_in_btn = QPushButton("➕")
+        self.zoom_in_btn.setMinimumHeight(32)
+        self.zoom_in_btn.setMaximumWidth(60)
         self.zoom_in_btn.clicked.connect(self.zoom_in_clicked.emit)
-        layout.addWidget(self.zoom_in_btn)
 
-        # Zoom Out
-        if USE_TRANSLATIONS:
-            zoom_out_text = "🔎 " + Translations.get("zoom_out", self.current_lang)
-        else:
-            zoom_out_text = "🔎 کوچک‌نمایی"
-
-        self.zoom_out_btn = QPushButton(zoom_out_text)
+        self.zoom_out_btn = QPushButton("➖")
+        self.zoom_out_btn.setMinimumHeight(32)
+        self.zoom_out_btn.setMaximumWidth(60)
         self.zoom_out_btn.clicked.connect(self.zoom_out_clicked.emit)
-        layout.addWidget(self.zoom_out_btn)
 
-        # Reset
-        reset_layout = QVBoxLayout()
-
-        if USE_TRANSLATIONS:
-            zoom_reset_text = "🔄 " + Translations.get("zoom_reset", self.current_lang)
-            reset_text = "↺ " + Translations.get("reset", self.current_lang)
-        else:
-            zoom_reset_text = "🔄 بازنشانی"
-            reset_text = "↺ بازنشانی"
-
-        self.zoom_reset_btn = QPushButton(zoom_reset_text)
+        self.zoom_reset_btn = QPushButton("🔄 Reset")
+        self.zoom_reset_btn.setMinimumHeight(32)
         self.zoom_reset_btn.clicked.connect(self.zoom_reset_clicked.emit)
-        reset_layout.addWidget(self.zoom_reset_btn)
 
-        self.reset_btn = QPushButton(reset_text)
+        self.reset_btn = QPushButton("↺ Reset All")
+        self.reset_btn.setMinimumHeight(32)
         self.reset_btn.clicked.connect(self.reset_clicked.emit)
-        reset_layout.addWidget(self.reset_btn)
 
-        group_layout = QVBoxLayout()
-        group_layout.addLayout(layout)
-        group_layout.addLayout(reset_layout)
-        group.setLayout(group_layout)
+        # Grid 2x2
+        layout.addWidget(self.zoom_in_btn, 0, 0)
+        layout.addWidget(self.zoom_out_btn, 0, 1)
+        layout.addWidget(self.zoom_reset_btn, 1, 0, 1, 2)
+        layout.addWidget(self.reset_btn, 2, 0, 1, 2)
+
+        group.setLayout(layout)
         return group
 
     def populate_filters(self):
@@ -364,10 +288,22 @@ class ControlPanel(QWidget):
             ],
             "photogrammetry": [
                 ("contrast_stretch", "filter_contrast"),
-                ("gamma", "filter_gamma"),
-                ("threshold", "filter_threshold"),
-                ("otsu", "filter_otsu"),
-                ("morphology", "filter_morphology"),
+                ("gamma_correction", "filter_gamma"),
+                ("threshold_binary", "filter_threshold"),
+                ("threshold_otsu", "filter_otsu"),
+                ("morphology_erode", "filter_morphology"),
+            ],
+            "convolution": [  # جدید!
+                ("conv_sobel_combined", "Sobel (Combined)"),
+                ("conv_prewitt_combined", "Prewitt (Combined)"),
+                ("conv_laplacian", "Laplacian"),
+                ("conv_laplacian_diag", "Laplacian (Diagonal)"),
+                ("conv_sharpen_basic", "Sharpen Basic"),
+                ("conv_sharpen_strong", "Sharpen Strong"),
+                ("conv_emboss", "Emboss"),
+                ("conv_outline", "Outline"),
+                ("conv_edge_enhance", "Edge Enhance"),
+                ("conv_custom", "🎨 Custom Kernel"),
             ],
             "advanced": [
                 ("clay", "filter_clay"),
@@ -380,18 +316,17 @@ class ControlPanel(QWidget):
                 ("hsv", "filter_hsv"),
                 ("lab", "filter_lab"),
                 ("hue_shift", "filter_hue"),
-                ("saturation", "filter_saturation"),
-                ("brightness", "filter_brightness"),
-                ("temperature", "filter_temperature"),
+                ("saturation_adjust", "filter_saturation"),
+                ("brightness_adjust", "filter_brightness"),
+                ("temperature_adjust", "filter_temperature"),
             ],
         }
         self.on_category_changed(0)
 
     def on_category_changed(self, index):
-        """تغییر دسته‌بندی"""
+        """تغییر دستهبندی"""
         category = self.category_combo.currentData()
         self.filter_combo.clear()
-
         if category in self.filters_data:
             for filter_key, trans_key in self.filters_data[category]:
                 if USE_TRANSLATIONS:
@@ -404,9 +339,13 @@ class ControlPanel(QWidget):
         """تغییر فیلتر"""
         filter_key = self.filter_combo.currentData()
         if filter_key:
+            if filter_key == "conv_custom":
+                self.custom_kernel_clicked.emit()
+                return
+
             params = {
-                "blur_amount": self.blur_slider.value(),
-                "clahe": self.clahe_spin.value(),
+                "ksize": self.blur_slider.value(),
+                "clipLimit": self.clahe_spin.value(),
             }
             self.filter_changed.emit(filter_key, params)
 

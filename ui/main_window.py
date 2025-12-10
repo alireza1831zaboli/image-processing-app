@@ -27,6 +27,7 @@ from core.processing_thread import ProcessingThread
 from translations import Translations
 from settings_manager import get_settings
 import os
+import numpy as np
 
 
 class MainWindow(QMainWindow):
@@ -52,12 +53,12 @@ class MainWindow(QMainWindow):
         )
         self.current_filename = ""
 
-        # برای جلوگیری از loop بی‌نهایت
         self.syncing = False
         self.syncing_histograms = False
 
         self.setup_ui()
         self.setStyleSheet(get_main_stylesheet())
+        self.control_panel.custom_kernel_clicked.connect(self.show_custom_kernel_dialog)
 
     def setup_ui(self):
         """ساخت UI"""
@@ -644,3 +645,24 @@ class MainWindow(QMainWindow):
             self.original_viewer.reset_zoom()
         elif current_tab == 1:
             self.original_histogram.reset_zoom()
+
+    def show_custom_kernel_dialog(self):
+        """نمایش دیالوگ Custom Kernel"""
+        from ui.custom_kernel_dialog import CustomKernelDialog
+
+        dialog = CustomKernelDialog(self)
+        dialog.kernel_ready.connect(self.apply_custom_kernel)
+        dialog.exec()
+
+    def apply_custom_kernel(self, kernel: np.ndarray, normalize: bool, padding: str):
+        """اعمال Custom Kernel"""
+        if self.original_image is None:
+            return
+
+        params = {
+            "kernel": kernel,
+            "normalize": normalize,
+            "padding": padding,
+        }
+
+        self.apply_filter("conv_custom", params)

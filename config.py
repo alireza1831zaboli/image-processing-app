@@ -1,6 +1,6 @@
 """
-تنظیمات و ثابت‌های برنامه
-Application Configuration and Constants
+تنظیمات و ثابتهای برنامه - نسخه بهینه شده
+Application Configuration and Constants - Optimized Version
 """
 
 # =============== تنظیمات UI ===============
@@ -24,55 +24,72 @@ PAN_ENABLED = True
 PAN_CURSOR_OPEN = "hand"
 PAN_CURSOR_CLOSED = "closedhand"
 
-
-# =============== پالت رنگی (Dark Theme) ===============
+# =============== پالت رنگی (Refined Teal Theme) ===============
 class Colors:
-    """رنگ‌های برنامه"""
-
-    # پس‌زمینه
-    BACKGROUND = "#1e1e1e"
-    PANEL = "#2d2d2d"
-    WIDGET = "#3d3d3d"
-    BORDER = "#444444"
-
-    # اصلی
-    PRIMARY = "#0d7377"
-    PRIMARY_LIGHT = "#14a085"
-    PRIMARY_DARK = "#0a5f62"
-
+    """رنگهای برنامه - تم Teal مدرن"""
+    
+    # پسزمینه
+    BACKGROUND = "#1a1e23"          # خیلی تیره
+    PANEL = "#22272e"               # تیره
+    WIDGET = "#2d333b"              # ویجت
+    BORDER = "#444c56"              # بوردر
+    
+    # اصلی - Teal/Cyan (رنگ قبلی بهتر شده)
+    PRIMARY = "#0d7377"             # Teal اصلی
+    PRIMARY_LIGHT = "#14a085"       # Teal روشن
+    PRIMARY_DARK = "#0a5f62"        # Teal تیره
+    
     # متن
-    TEXT = "#ffffff"
-    TEXT_SECONDARY = "#b0b0b0"
-
+    TEXT = "#e6edf3"                # سفید نرم
+    TEXT_SECONDARY = "#9198a1"      # خاکستری
+    TEXT_MUTED = "#656d76"          # خاکستری تیره
+    
     # وضعیت
-    SUCCESS = "#4CAF50"
-    WARNING = "#ff9800"
-    ERROR = "#ff0000"
-    INFO = "#2196F3"
-
+    SUCCESS = "#3fb950"             # سبز
+    WARNING = "#d29922"             # نارنجی
+    ERROR = "#ff5555"               # قرمز
+    INFO = "#58a6ff"                # آبی
+    
     # ویوئر تصویر
-    IMAGE_VIEWER_BG = "#2b2b2b"
-    IMAGE_VIEWER_BORDER = "#444444"
-
+    IMAGE_VIEWER_BG = "#1a1e23"
+    IMAGE_VIEWER_BORDER = "#444c56"
+    
+    # Hover
+    HOVER = "#373e47"
 
 # =============== تنظیمات استایل ===============
 class Fonts:
-    """فونت‌های برنامه"""
-
-    FAMILY = "'Segoe UI', Tahoma, Arial"
+    """فونتهای برنامه"""
+    FAMILY = "'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif"
     SIZE_BASE = 12
-    SIZE_HEADER = 18
+    SIZE_SMALL = 11
+    SIZE_HEADER = 14
+    SIZE_TITLE = 16
     SIZE_BUTTON = 12
 
+# =============== تنظیمات Layout ===============
+class Layout:
+    """تنظیمات Layout بهینه"""
+    SPACING_SMALL = 4
+    SPACING_MEDIUM = 8
+    SPACING_LARGE = 12
+    PADDING_SMALL = 6
+    PADDING_MEDIUM = 10
+    PADDING_LARGE = 14
+    RADIUS_SMALL = 5
+    RADIUS_MEDIUM = 6
+    RADIUS_LARGE = 8
+    CONTROL_HEIGHT = 32
+    BUTTON_HEIGHT = 34
 
 # =============== تنظیمات Threading ===============
-PROCESSING_TIMEOUT = 30  # ثانیه
+PROCESSING_TIMEOUT = 30
 THREAD_PRIORITY = "Normal"
 
 # =============== لیست فیلترها ===============
 FILTER_CATEGORIES = {
     "basic": "فیلترهای پایه",
-    "edge": "لبه‌یابی",
+    "edge": "لبهیابی",
     "photo": "فوتوگرامتری",
     "creative": "خلاقانه",
     "color": "رنگی",
