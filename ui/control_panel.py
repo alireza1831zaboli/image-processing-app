@@ -1,6 +1,6 @@
 """
-پنل کنترل فشرده و بهینه شده
-Compact and Optimized Control Panel
+پنل کنترل با پارامترهای داینامیک
+Control Panel with Dynamic Parameters
 """
 
 from PySide6.QtWidgets import (
@@ -33,8 +33,9 @@ except ImportError:
             return key
 
 
-# در ابتدای فایل، سیگنال جدید اضافه کن:
 class ControlPanel(QWidget):
+    """پنل کنترل"""
+
     filter_changed = Signal(str, dict)
     load_clicked = Signal()
     save_clicked = Signal()
@@ -47,20 +48,26 @@ class ControlPanel(QWidget):
 
     def __init__(self):
         super().__init__()
+
         if USE_TRANSLATIONS:
             self.settings = get_settings()
             self.current_lang = self.settings.get("language", "fa")
         else:
             self.current_lang = "fa"
+
+        # ذخیره پارامترها
+        self.param_widgets = {}
+        self.current_filter = None
+
         self.setup_ui()
 
     def setup_ui(self):
-        """ساخت UI فشرده"""
+        """ساخت UI"""
         main_layout = QVBoxLayout(self)
         main_layout.setSpacing(8)
         main_layout.setContentsMargins(8, 8, 8, 8)
 
-        # عنوان کوچک
+        # عنوان
         if USE_TRANSLATIONS:
             title_text = Translations.get("control_panel", self.current_lang)
         else:
@@ -71,7 +78,7 @@ class ControlPanel(QWidget):
             f"""
             QLabel {{
                 color: {config.Colors.PRIMARY};
-                font-size: {config.Fonts.SIZE_HEADER}px;
+                font-size: 16px;
                 font-weight: 600;
                 padding: 6px;
             }}
@@ -79,19 +86,21 @@ class ControlPanel(QWidget):
         )
         main_layout.addWidget(title)
 
-        # گروه فیلترها - فشرده
+        # ✅ اول پارامترها رو بساز (قبل از فیلترها!)
+        self.params_group = self.create_params_group()
+
+        # ✅ بعد فیلترها
         filter_group = self.create_filter_group()
         main_layout.addWidget(filter_group)
 
-        # پارامترها - فشرده
-        params_group = self.create_params_group()
-        main_layout.addWidget(params_group)
+        # ✅ بعد پارامترها رو به layout اضافه کن
+        main_layout.addWidget(self.params_group)
 
-        # عملیات - Grid Layout برای فشردگی
+        # عملیات
         operations_group = self.create_operations_group()
         main_layout.addWidget(operations_group)
 
-        # Zoom - فشرده
+        # Zoom
         zoom_group = self.create_zoom_group()
         main_layout.addWidget(zoom_group)
 
@@ -103,7 +112,7 @@ class ControlPanel(QWidget):
             f"""
             QLabel {{
                 color: {config.Colors.TEXT_MUTED};
-                font-size: {config.Fonts.SIZE_SMALL}px;
+                font-size: 10px;
                 padding: 4px;
             }}
         """
@@ -111,14 +120,15 @@ class ControlPanel(QWidget):
         main_layout.addWidget(hint)
 
     def create_filter_group(self):
-        """گروه فیلتر - فشرده"""
+        """گروه فیلتر"""
         group = QGroupBox("🎨 Filters")
         layout = QVBoxLayout()
         layout.setSpacing(6)
 
-        # دسته‌بندی
+        # دستهبندی
         self.category_combo = QComboBox()
-        self.category_combo.setMinimumHeight(config.Layout.CONTROL_HEIGHT)
+        self.category_combo.setMinimumHeight(32)
+
         if USE_TRANSLATIONS:
             self.category_combo.addItem(
                 "🎨 " + Translations.get("category_base", self.current_lang), "base"
@@ -131,123 +141,104 @@ class ControlPanel(QWidget):
                 "📷 " + Translations.get("category_photogrammetry", self.current_lang),
                 "photogrammetry",
             )
+            self.category_combo.addItem("🎨 Color", "color")
             self.category_combo.addItem(
                 "🎭 " + Translations.get("category_advanced", self.current_lang),
-                "advanced",
+                "creative",
             )
-            self.category_combo.addItem(
-                "🔲 " + Translations.get("category_Convolution", self.current_lang),
-                "convolution",
-            )
-
+            self.category_combo.addItem("🔲 Convolution", "convolution")
         else:
             self.category_combo.addItem("🎨 Base", "base")
-            self.category_combo.addItem("✨ Enhancement", "enhancement")
+            self.category_combo.addItem("✨ Edge Detection", "edge")
             self.category_combo.addItem("📷 Photogrammetry", "photogrammetry")
-            self.category_combo.addItem("🎭 Creative", "advanced")
+            self.category_combo.addItem("🌈 Color", "color")
+            self.category_combo.addItem("🎭 Creative", "creative")
             self.category_combo.addItem("🔲 Convolution", "convolution")
 
         self.category_combo.currentIndexChanged.connect(self.on_category_changed)
         layout.addWidget(self.category_combo)
 
+        # فیلتر
         self.filter_combo = QComboBox()
-        self.filter_combo.setMinimumHeight(config.Layout.CONTROL_HEIGHT)
-        self.filter_combo.blockSignals(True)
+        self.filter_combo.setMinimumHeight(32)
         self.filter_combo.currentIndexChanged.connect(self.on_filter_changed)
         layout.addWidget(self.filter_combo)
 
         group.setLayout(layout)
+
+        # پر کردن فیلترها
         self.populate_filters()
-        self.filter_combo.blockSignals(False)
+
         return group
 
     def create_params_group(self):
-        """گروه پارامترها - فشرده"""
+        """گروه پارامترها - داینامیک"""
         group = QGroupBox("⚙️ Parameters")
-        layout = QVBoxLayout()
-        layout.setSpacing(6)
 
-        # Blur - inline
-        blur_container = QHBoxLayout()
-        blur_container.setSpacing(6)
-        blur_label = QLabel("Blur:")
-        blur_label.setFixedWidth(45)
-        self.blur_slider = QSlider(Qt.Horizontal)
-        self.blur_slider.setRange(1, 30)
-        self.blur_slider.setValue(15)
-        self.blur_slider.setMinimumHeight(24)
-        self.blur_slider.valueChanged.connect(self.on_params_changed)
-        self.blur_value_label = QLabel("15")
-        self.blur_value_label.setFixedWidth(25)
-        self.blur_value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.blur_slider.valueChanged.connect(
-            lambda v: self.blur_value_label.setText(str(v))
+        # Layout اصلی که داینامیک میشه
+        self.params_container = QWidget()
+        self.params_layout = QVBoxLayout(self.params_container)
+        self.params_layout.setSpacing(6)
+        self.params_layout.setContentsMargins(0, 0, 0, 0)
+
+        # پیغام پیشفرض
+        self.no_params_label = QLabel("ℹ️ No parameters needed")
+        self.no_params_label.setAlignment(Qt.AlignCenter)
+        self.no_params_label.setStyleSheet(
+            f"""
+            QLabel {{
+                color: {config.Colors.TEXT_MUTED};
+                padding: 20px;
+                font-size: 12px;
+            }}
+        """
         )
-        blur_container.addWidget(blur_label)
-        blur_container.addWidget(self.blur_slider)
-        blur_container.addWidget(self.blur_value_label)
-        layout.addLayout(blur_container)
+        self.params_layout.addWidget(self.no_params_label)
 
-        # CLAHE - inline
-        clahe_container = QHBoxLayout()
-        clahe_container.setSpacing(6)
-        clahe_label = QLabel("CLAHE:")
-        clahe_label.setFixedWidth(45)
-        self.clahe_spin = QDoubleSpinBox()
-        self.clahe_spin.setRange(1.0, 5.0)
-        self.clahe_spin.setSingleStep(0.1)
-        self.clahe_spin.setValue(2.0)
-        self.clahe_spin.setMinimumHeight(config.Layout.CONTROL_HEIGHT)
-        self.clahe_spin.valueChanged.connect(self.on_params_changed)
-        clahe_container.addWidget(clahe_label)
-        clahe_container.addWidget(self.clahe_spin)
-        layout.addLayout(clahe_container)
+        group_layout = QVBoxLayout()
+        group_layout.setContentsMargins(8, 8, 8, 8)
+        group_layout.addWidget(self.params_container)
+        group.setLayout(group_layout)
 
-        group.setLayout(layout)
         return group
 
     def create_operations_group(self):
-        """گروه عملیات - Grid برای فشردگی"""
+        """گروه عملیات"""
         group = QGroupBox("🔧 Operations")
         layout = QGridLayout()
         layout.setSpacing(6)
 
-        # دکمه‌های کوچک‌تر
         self.load_btn = QPushButton("📁 Load")
-        self.load_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
+        self.load_btn.setMinimumHeight(36)
         self.load_btn.clicked.connect(self.load_clicked.emit)
 
         self.save_btn = QPushButton("💾 Save")
-        self.save_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
+        self.save_btn.setMinimumHeight(36)
         self.save_btn.clicked.connect(self.save_clicked.emit)
 
         self.settings_btn = QPushButton("⚙️ Settings")
-        self.settings_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
+        self.settings_btn.setMinimumHeight(36)
         self.settings_btn.clicked.connect(self.settings_clicked.emit)
 
-        # Grid 2x2
         layout.addWidget(self.load_btn, 0, 0)
         layout.addWidget(self.save_btn, 0, 1)
-        layout.addWidget(self.settings_btn, 1, 0, 1, 2)  # full width
+        layout.addWidget(self.settings_btn, 1, 0, 1, 2)
 
         group.setLayout(layout)
         return group
 
     def create_zoom_group(self):
-        """گروه Zoom - فشرده Grid"""
+        """گروه Zoom"""
         group = QGroupBox("🔍 Zoom")
         layout = QGridLayout()
         layout.setSpacing(6)
 
-        # دکمه‌های کوچک
         self.zoom_in_btn = QPushButton("➕")
         self.zoom_in_btn.setMinimumHeight(32)
-        self.zoom_in_btn.setMaximumWidth(60)
         self.zoom_in_btn.clicked.connect(self.zoom_in_clicked.emit)
 
         self.zoom_out_btn = QPushButton("➖")
         self.zoom_out_btn.setMinimumHeight(32)
-        self.zoom_out_btn.setMaximumWidth(60)
         self.zoom_out_btn.clicked.connect(self.zoom_out_clicked.emit)
 
         self.zoom_reset_btn = QPushButton("🔄 Reset")
@@ -258,7 +249,6 @@ class ControlPanel(QWidget):
         self.reset_btn.setMinimumHeight(32)
         self.reset_btn.clicked.connect(self.reset_clicked.emit)
 
-        # Grid 2x2
         layout.addWidget(self.zoom_in_btn, 0, 0)
         layout.addWidget(self.zoom_out_btn, 0, 1)
         layout.addWidget(self.zoom_reset_btn, 1, 0, 1, 2)
@@ -271,84 +261,475 @@ class ControlPanel(QWidget):
         """پر کردن لیست فیلترها"""
         self.filters_data = {
             "base": [
-                ("original", "filter_original"),
-                ("grayscale", "filter_grayscale"),
-                ("blur", "filter_blur"),
-                ("sharpen", "filter_sharpen"),
+                ("original", "Original"),
+                ("grayscale", "Grayscale"),
+                ("blur", "Blur"),
+                ("sharpen", "Sharpen"),
+                ("bilateral", "Bilateral Filter"),
+                ("median", "Median Filter"),
+                ("histogram_equalization", "Histogram Equalization"),
+                ("clahe", "CLAHE"),
             ],
-            "enhancement": [
-                ("bilateral", "filter_bilateral"),
-                ("median", "filter_median"),
-                ("histogram_equalization", "filter_histogram_eq"),
-                ("clahe", "filter_clahe"),
-                ("canny", "filter_canny"),
-                ("sobel", "filter_sobel"),
-                ("laplacian", "filter_laplacian"),
-                ("scharr", "filter_scharr"),
+            "edge": [
+                ("edge_canny", "Canny"),
+                ("edge_sobel", "Sobel"),
+                ("edge_laplacian", "Laplacian"),
+                ("edge_scharr", "Scharr"),
             ],
             "photogrammetry": [
-                ("contrast_stretch", "filter_contrast"),
-                ("gamma_correction", "filter_gamma"),
-                ("threshold_binary", "filter_threshold"),
-                ("threshold_otsu", "filter_otsu"),
-                ("morphology_erode", "filter_morphology"),
+                ("contrast_stretch", "Contrast Stretch"),
+                ("gamma_correction", "Gamma Correction"),
+                ("threshold_binary", "Binary Threshold"),
+                ("threshold_otsu", "Otsu Threshold"),
+                ("adaptive_threshold", "Adaptive Threshold"),
+                ("morphology_erode", "Morphology Erode"),
+                ("morphology_dilate", "Morphology Dilate"),
+                ("morphology_open", "Morphology Open"),
+                ("morphology_close", "Morphology Close"),
             ],
-            "convolution": [  # جدید!
-                ("conv_sobel_combined", "Sobel (Combined)"),
-                ("conv_prewitt_combined", "Prewitt (Combined)"),
+            "color": [
+                ("hsv", "HSV"),
+                ("lab", "LAB"),
+                ("hue_shift", "Hue Shift"),
+                ("saturation_adjust", "Saturation Adjust"),
+                ("brightness_adjust", "Brightness Adjust"),
+                ("temperature_adjust", "Temperature Adjust"),
+                ("invert_colors", "Invert Colors"),
+            ],
+            "creative": [
+                ("clay", "Clay"),
+                ("negative", "Negative"),
+                ("sepia", "Sepia"),
+                ("emboss", "Emboss"),
+                ("cartoon", "Cartoon"),
+                ("pencil_sketch", "Pencil Sketch"),
+                ("oil_painting", "Oil Painting"),
+                ("watercolor", "Watercolor"),
+            ],
+            "convolution": [
+                ("conv_sobel_x", "Sobel X"),
+                ("conv_sobel_y", "Sobel Y"),
+                ("conv_sobel_combined", "Sobel Combined"),
+                ("conv_prewitt_x", "Prewitt X"),
+                ("conv_prewitt_y", "Prewitt Y"),
+                ("conv_prewitt_combined", "Prewitt Combined"),
                 ("conv_laplacian", "Laplacian"),
-                ("conv_laplacian_diag", "Laplacian (Diagonal)"),
+                ("conv_laplacian_diag", "Laplacian Diagonal"),
                 ("conv_sharpen_basic", "Sharpen Basic"),
                 ("conv_sharpen_strong", "Sharpen Strong"),
+                ("conv_unsharp", "Unsharp Mask"),
+                ("conv_box_blur", "Box Blur"),
+                ("conv_gaussian", "Gaussian Blur"),
                 ("conv_emboss", "Emboss"),
-                ("conv_outline", "Outline"),
+                ("conv_emboss_subtle", "Emboss Subtle"),
                 ("conv_edge_enhance", "Edge Enhance"),
+                ("conv_outline", "Outline"),
                 ("conv_custom", "🎨 Custom Kernel"),
             ],
-            "advanced": [
-                ("clay", "filter_clay"),
-                ("negative", "filter_negative"),
-                ("sepia", "filter_sepia"),
-                ("emboss", "filter_emboss"),
-                ("cartoon", "filter_cartoon"),
-                ("pencil_sketch", "filter_pencil"),
-                ("watercolor", "filter_watercolor"),
-                ("hsv", "filter_hsv"),
-                ("lab", "filter_lab"),
-                ("hue_shift", "filter_hue"),
-                ("saturation_adjust", "filter_saturation"),
-                ("brightness_adjust", "filter_brightness"),
-                ("temperature_adjust", "filter_temperature"),
-            ],
         }
+
         self.on_category_changed(0)
 
     def on_category_changed(self, index):
         """تغییر دستهبندی"""
         category = self.category_combo.currentData()
+
+        self.filter_combo.blockSignals(True)
         self.filter_combo.clear()
+
         if category in self.filters_data:
-            for filter_key, trans_key in self.filters_data[category]:
-                if USE_TRANSLATIONS:
-                    display_name = Translations.get(trans_key, self.current_lang)
-                else:
-                    display_name = filter_key
+            for filter_key, display_name in self.filters_data[category]:
                 self.filter_combo.addItem(display_name, filter_key)
 
-    def on_filter_changed(self):
-        """تغییر فیلتر"""
-        filter_key = self.filter_combo.currentData()
-        if filter_key:
-            if filter_key == "conv_custom":
-                self.custom_kernel_clicked.emit()
-                return
+        self.filter_combo.blockSignals(False)
+        self.on_filter_changed()
 
-            params = {
-                "ksize": self.blur_slider.value(),
-                "clipLimit": self.clahe_spin.value(),
-            }
-            self.filter_changed.emit(filter_key, params)
+    def on_filter_changed(self):
+        """تغییر فیلتر - بروزرسانی پارامترها"""
+        filter_key = self.filter_combo.currentData()
+
+        if not filter_key:
+            return
+
+        # Custom Kernel به صورت جدا
+        if filter_key == "conv_custom":
+            self.custom_kernel_clicked.emit()
+            return
+
+        self.current_filter = filter_key
+
+        # پاک کردن پارامترهای قبلی
+        self.clear_params()
+
+        # ساخت پارامترهای جدید
+        self.create_filter_params(filter_key)
+
+        # ارسال سیگنال
+        params = self.get_current_params()
+        self.filter_changed.emit(filter_key, params)
+
+    def clear_params(self):
+        """پاک کردن همه پارامترها"""
+        if not hasattr(self, "params_container"):
+            return
+
+        # ✅ حذف container قدیمی
+        old_container = self.params_container
+        old_container.setParent(None)
+        old_container.deleteLater()
+
+        # ✅ ساخت container جدید
+        self.params_container = QWidget()
+        self.params_layout = QVBoxLayout(self.params_container)
+        self.params_layout.setSpacing(6)
+        self.params_layout.setContentsMargins(0, 0, 0, 0)
+
+        # ✅ اضافه کردن به group
+        self.params_group.layout().addWidget(self.params_container)
+
+        # پاک کردن دیکشنری
+        self.param_widgets.clear()
+
+    def create_filter_params(self, filter_key):
+        if not hasattr(self, "params_layout"):
+            return
+
+        params_config = self.get_params_config(filter_key)
+
+        if not params_config:
+            # اگر پارامتری نداشت
+            self.no_params_label = QLabel("ℹ️ No parameters needed")
+            self.no_params_label.setAlignment(Qt.AlignCenter)
+            self.no_params_label.setStyleSheet(
+                f"""
+                QLabel {{
+                    color: {config.Colors.TEXT_MUTED};
+                    padding: 20px;
+                    font-size: 12px;
+                }}
+            """
+            )
+            self.params_layout.addWidget(self.no_params_label)
+            return
+
+        # ساخت پارامترها
+        for param_name, param_config in params_config.items():
+            self.create_param_widget(param_name, param_config)
+
+    def get_params_config(self, filter_key):
+        """تعریف پارامترها برای هر فیلتر"""
+        configs = {
+            # Base Filters
+            "blur": {
+                "ksize": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 99,
+                    "default": 15,
+                    "step": 2,
+                    "label": "Kernel Size",
+                },
+            },
+            "clahe": {
+                "clipLimit": {
+                    "type": "double",
+                    "min": 0.1,
+                    "max": 10.0,
+                    "default": 2.0,
+                    "step": 0.1,
+                    "label": "Clip Limit",
+                },
+                "tileGridSize": {
+                    "type": "slider",
+                    "min": 2,
+                    "max": 16,
+                    "default": 8,
+                    "step": 1,
+                    "label": "Tile Size",
+                },
+            },
+            "bilateral": {
+                "d": {
+                    "type": "slider",
+                    "min": 5,
+                    "max": 25,
+                    "default": 9,
+                    "step": 2,
+                    "label": "Diameter",
+                },
+                "sigmaColor": {
+                    "type": "slider",
+                    "min": 10,
+                    "max": 200,
+                    "default": 75,
+                    "step": 5,
+                    "label": "Sigma Color",
+                },
+                "sigmaSpace": {
+                    "type": "slider",
+                    "min": 10,
+                    "max": 200,
+                    "default": 75,
+                    "step": 5,
+                    "label": "Sigma Space",
+                },
+            },
+            "median": {
+                "ksize": {
+                    "type": "slider",
+                    "min": 3,
+                    "max": 31,
+                    "default": 5,
+                    "step": 2,
+                    "label": "Kernel Size",
+                },
+            },
+            # Edge Filters
+            "edge_canny": {
+                "threshold1": {
+                    "type": "slider",
+                    "min": 0,
+                    "max": 300,
+                    "default": 100,
+                    "step": 10,
+                    "label": "Threshold 1",
+                },
+                "threshold2": {
+                    "type": "slider",
+                    "min": 0,
+                    "max": 300,
+                    "default": 200,
+                    "step": 10,
+                    "label": "Threshold 2",
+                },
+            },
+            # Color Filters
+            "hue_shift": {
+                "shift": {
+                    "type": "slider",
+                    "min": 0,
+                    "max": 180,
+                    "default": 30,
+                    "step": 5,
+                    "label": "Hue Shift",
+                },
+            },
+            "saturation_adjust": {
+                "factor": {
+                    "type": "double",
+                    "min": 0.0,
+                    "max": 3.0,
+                    "default": 1.5,
+                    "step": 0.1,
+                    "label": "Saturation",
+                },
+            },
+            "brightness_adjust": {
+                "value": {
+                    "type": "slider",
+                    "min": -100,
+                    "max": 100,
+                    "default": 50,
+                    "step": 5,
+                    "label": "Brightness",
+                },
+            },
+            "temperature_adjust": {
+                "temperature": {
+                    "type": "slider",
+                    "min": -100,
+                    "max": 100,
+                    "default": 0,
+                    "step": 5,
+                    "label": "Temperature",
+                },
+            },
+            # Photogrammetry
+            "contrast_stretch": {
+                "min_percentile": {
+                    "type": "slider",
+                    "min": 0,
+                    "max": 10,
+                    "default": 2,
+                    "step": 1,
+                    "label": "Min %",
+                },
+                "max_percentile": {
+                    "type": "slider",
+                    "min": 90,
+                    "max": 100,
+                    "default": 98,
+                    "step": 1,
+                    "label": "Max %",
+                },
+            },
+            "gamma_correction": {
+                "gamma": {
+                    "type": "double",
+                    "min": 0.1,
+                    "max": 5.0,
+                    "default": 1.0,
+                    "step": 0.1,
+                    "label": "Gamma",
+                },
+            },
+            "threshold_binary": {
+                "threshold": {
+                    "type": "slider",
+                    "min": 0,
+                    "max": 255,
+                    "default": 127,
+                    "step": 1,
+                    "label": "Threshold",
+                },
+            },
+            "adaptive_threshold": {
+                "blockSize": {
+                    "type": "slider",
+                    "min": 3,
+                    "max": 99,
+                    "default": 11,
+                    "step": 2,
+                    "label": "Block Size",
+                },
+                "C": {
+                    "type": "slider",
+                    "min": -20,
+                    "max": 20,
+                    "default": 2,
+                    "step": 1,
+                    "label": "Constant C",
+                },
+            },
+            "morphology_erode": {
+                "kernel_size": {
+                    "type": "slider",
+                    "min": 3,
+                    "max": 21,
+                    "default": 5,
+                    "step": 2,
+                    "label": "Kernel Size",
+                },
+            },
+            "morphology_dilate": {
+                "kernel_size": {
+                    "type": "slider",
+                    "min": 3,
+                    "max": 21,
+                    "default": 5,
+                    "step": 2,
+                    "label": "Kernel Size",
+                },
+            },
+            "morphology_open": {
+                "kernel_size": {
+                    "type": "slider",
+                    "min": 3,
+                    "max": 21,
+                    "default": 5,
+                    "step": 2,
+                    "label": "Kernel Size",
+                },
+            },
+            "morphology_close": {
+                "kernel_size": {
+                    "type": "slider",
+                    "min": 3,
+                    "max": 21,
+                    "default": 5,
+                    "step": 2,
+                    "label": "Kernel Size",
+                },
+            },
+            # Creative
+            "oil_painting": {
+                "size": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 15,
+                    "default": 7,
+                    "step": 2,
+                    "label": "Size",
+                },
+                "dynRatio": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 10,
+                    "default": 1,
+                    "step": 1,
+                    "label": "Dynamic Ratio",
+                },
+            },
+        }
+
+        return configs.get(filter_key, {})
+
+    def create_param_widget(self, param_name, config):
+        """ساخت ویجت پارامتر"""
+        if not hasattr(self, "params_layout"):
+            return
+
+        container = QHBoxLayout()
+        container.setSpacing(6)
+
+        # Label
+        label = QLabel(config["label"] + ":")
+        label.setFixedWidth(90)
+        container.addWidget(label)
+
+        if config["type"] == "slider":
+            # Slider + Value Label
+            slider = QSlider(Qt.Horizontal)
+            slider.setMinimum(config["min"])
+            slider.setMaximum(config["max"])
+            slider.setValue(config["default"])
+            slider.setSingleStep(config.get("step", 1))
+            slider.setMinimumHeight(24)
+
+            value_label = QLabel(str(config["default"]))
+            value_label.setFixedWidth(40)
+            value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
+            slider.valueChanged.connect(lambda v: value_label.setText(str(v)))
+            slider.valueChanged.connect(self.on_params_changed)
+
+            container.addWidget(slider)
+            container.addWidget(value_label)
+
+            self.param_widgets[param_name] = slider
+
+        elif config["type"] == "double":
+            # Double SpinBox
+            spinbox = QDoubleSpinBox()
+            spinbox.setRange(config["min"], config["max"])
+            spinbox.setValue(config["default"])
+            spinbox.setSingleStep(config.get("step", 0.1))
+            spinbox.setMinimumHeight(32)
+            spinbox.setDecimals(1)
+            spinbox.valueChanged.connect(self.on_params_changed)
+
+            container.addWidget(spinbox)
+
+            self.param_widgets[param_name] = spinbox
+
+        self.params_layout.addLayout(container)
+
+    def get_current_params(self):
+        """دریافت پارامترهای فعلی"""
+        params = {}
+
+        for param_name, widget in self.param_widgets.items():
+            if isinstance(widget, QSlider):
+                params[param_name] = widget.value()
+            elif isinstance(widget, QDoubleSpinBox):
+                params[param_name] = widget.value()
+            elif isinstance(widget, QSpinBox):
+                params[param_name] = widget.value()
+
+        return params
 
     def on_params_changed(self):
         """تغییر پارامترها"""
-        self.on_filter_changed()
+        if self.current_filter:
+            params = self.get_current_params()
+            self.filter_changed.emit(self.current_filter, params)
