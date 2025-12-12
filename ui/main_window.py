@@ -3,6 +3,8 @@
 Final Main Window with Complete Settings System
 """
 
+from PySide6.QtGui import QTextCursor
+
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -14,6 +16,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QFrame,
     QTabWidget,
+    QTextEdit,
 )
 from PySide6.QtCore import Qt
 import config
@@ -81,10 +84,14 @@ class MainWindow(QMainWindow):
         self.control_panel.load_clicked.connect(self.load_image)
         self.control_panel.save_clicked.connect(self.save_image)
         self.control_panel.reset_clicked.connect(self.reset_image)
-        self.control_panel.settings_clicked.connect(self.show_settings)  # جدید!
+        self.control_panel.settings_clicked.connect(self.show_settings)
         self.control_panel.zoom_in_clicked.connect(self.zoom_in_viewers)
         self.control_panel.zoom_out_clicked.connect(self.zoom_out_viewers)
         self.control_panel.zoom_reset_clicked.connect(self.zoom_reset_viewers)
+        self.control_panel.custom_kernel_clicked.connect(
+            self.show_custom_kernel_dialog
+        )  # ✅
+
         content_layout.addWidget(self.control_panel)
 
         # تب‌ها
@@ -109,6 +116,39 @@ class MainWindow(QMainWindow):
 
         content_layout.addWidget(self.view_tabs, stretch=1)
         main_layout.addLayout(content_layout)
+
+        # ========== ✅ Console Log (جدید!) ==========
+        console_group = QGroupBox("📋 Console / Processing Log")
+        console_group.setMaximumHeight(150)
+        console_layout = QVBoxLayout()
+        console_layout.setContentsMargins(8, 8, 8, 8)
+
+        self.console_text = QTextEdit()
+        self.console_text.setReadOnly(True)
+        self.console_text.setMaximumHeight(120)
+        self.console_text.setStyleSheet(
+            f"""
+            QTextEdit {{
+                background-color: {config.Colors.PANEL};
+                color: {config.Colors.TEXT};
+                border: 1px solid {config.Colors.BORDER};
+                border-radius: 5px;
+                padding: 8px;
+                font-family: 'Consolas', 'Courier New', monospace;
+                font-size: 11px;
+                line-height: 1.4;
+            }}
+        """
+        )
+
+        # پیام خوش‌آمدگویی
+        self.log("Application started successfully", "success")
+        self.log("Ready to process images", "info")
+
+        console_layout.addWidget(self.console_text)
+        console_group.setLayout(console_layout)
+
+        main_layout.addWidget(console_group)
 
         # نوار وضعیت
         self.create_status_bar()
@@ -282,10 +322,6 @@ class MainWindow(QMainWindow):
         zoom_factor = self.settings.get_zoom_factor()
         config.ZOOM_WHEEL_FACTOR = zoom_factor
 
-        self.statusBar().showMessage(
-            "✓ " + Translations.get("msg_success", self.current_lang), 3000
-        )
-
     # ========== Status Bar ==========
 
     def create_status_bar(self):
@@ -308,7 +344,7 @@ class MainWindow(QMainWindow):
                 padding: 4px 12px;
                 border-radius: 4px;
             }}
-        """
+            """
         )
 
         status_layout = QHBoxLayout(self.status_frame)
@@ -322,14 +358,17 @@ class MainWindow(QMainWindow):
             background-color: {config.Colors.PRIMARY};
             border-radius: 6px;
             padding: 2px;
-        """
+            """
         )
+
         filter_layout = QHBoxLayout(filter_container)
         filter_layout.setContentsMargins(8, 4, 8, 4)
+
         filter_icon = QLabel("🎨")
         filter_icon.setStyleSheet(
             "font-size: 14px; background: transparent; padding: 0px;"
         )
+
         self.filter_label = QLabel(
             Translations.get("status_filter", self.current_lang)
             + ": "
@@ -338,6 +377,7 @@ class MainWindow(QMainWindow):
         self.filter_label.setStyleSheet(
             "color: white; font-weight: bold; background: transparent; padding: 0px;"
         )
+
         filter_layout.addWidget(filter_icon)
         filter_layout.addWidget(self.filter_label)
         status_layout.addWidget(filter_container)
@@ -355,18 +395,22 @@ class MainWindow(QMainWindow):
             background-color: {config.Colors.WIDGET};
             border-radius: 6px;
             padding: 2px;
-        """
+            """
         )
+
         filename_layout = QHBoxLayout(filename_container)
         filename_layout.setContentsMargins(8, 4, 8, 4)
+
         filename_icon = QLabel("📄")
         filename_icon.setStyleSheet(
             "font-size: 14px; background: transparent; padding: 0px;"
         )
+
         self.filename_label = QLabel(
             Translations.get("status_file", self.current_lang) + ": -"
         )
         self.filename_label.setStyleSheet("background: transparent; padding: 0px;")
+
         filename_layout.addWidget(filename_icon)
         filename_layout.addWidget(self.filename_label)
         status_layout.addWidget(filename_container)
@@ -377,28 +421,59 @@ class MainWindow(QMainWindow):
         sep2.setStyleSheet(f"color: {config.Colors.BORDER};")
         status_layout.addWidget(sep2)
 
-        # ابعاد
-        dims_container = QWidget()
-        dims_container.setStyleSheet(
+        # ✅ ابعاد Input (جدید!)
+        dims_input_container = QWidget()
+        dims_input_container.setStyleSheet(
             f"""
             background-color: {config.Colors.WIDGET};
             border-radius: 6px;
             padding: 2px;
-        """
+            """
         )
-        dims_layout = QHBoxLayout(dims_container)
-        dims_layout.setContentsMargins(8, 4, 8, 4)
-        dims_icon = QLabel("📐")
-        dims_icon.setStyleSheet(
+
+        dims_input_layout = QHBoxLayout(dims_input_container)
+        dims_input_layout.setContentsMargins(8, 4, 8, 4)
+
+        dims_input_icon = QLabel("📐")
+        dims_input_icon.setStyleSheet(
             "font-size: 14px; background: transparent; padding: 0px;"
         )
-        self.dimensions_label = QLabel(
-            Translations.get("status_dimensions", self.current_lang) + ": -"
+
+        self.dimensions_input_label = QLabel("Input: -")
+        self.dimensions_input_label.setStyleSheet(
+            "background: transparent; padding: 0px;"
         )
-        self.dimensions_label.setStyleSheet("background: transparent; padding: 0px;")
-        dims_layout.addWidget(dims_icon)
-        dims_layout.addWidget(self.dimensions_label)
-        status_layout.addWidget(dims_container)
+
+        dims_input_layout.addWidget(dims_input_icon)
+        dims_input_layout.addWidget(self.dimensions_input_label)
+        status_layout.addWidget(dims_input_container)
+
+        # ✅ ابعاد Output (جدید!)
+        dims_output_container = QWidget()
+        dims_output_container.setStyleSheet(
+            f"""
+            background-color: {config.Colors.WIDGET};
+            border-radius: 6px;
+            padding: 2px;
+            """
+        )
+
+        dims_output_layout = QHBoxLayout(dims_output_container)
+        dims_output_layout.setContentsMargins(8, 4, 8, 4)
+
+        dims_output_icon = QLabel("✨")
+        dims_output_icon.setStyleSheet(
+            "font-size: 14px; background: transparent; padding: 0px;"
+        )
+
+        self.dimensions_output_label = QLabel("Output: -")
+        self.dimensions_output_label.setStyleSheet(
+            "color: white; background: transparent; padding: 0px;"
+        )
+
+        dims_output_layout.addWidget(dims_output_icon)
+        dims_output_layout.addWidget(self.dimensions_output_label)
+        status_layout.addWidget(dims_output_container)
 
         # جداکننده
         sep3 = QFrame()
@@ -413,18 +488,22 @@ class MainWindow(QMainWindow):
             background-color: {config.Colors.WIDGET};
             border-radius: 6px;
             padding: 2px;
-        """
+            """
         )
+
         coords_layout = QHBoxLayout(coords_container)
         coords_layout.setContentsMargins(8, 4, 8, 4)
+
         coords_icon = QLabel("🖱️")
         coords_icon.setStyleSheet(
             "font-size: 14px; background: transparent; padding: 0px;"
         )
+
         self.coords_label = QLabel(
             Translations.get("status_coords", self.current_lang) + ": -"
         )
         self.coords_label.setStyleSheet("background: transparent; padding: 0px;")
+
         coords_layout.addWidget(coords_icon)
         coords_layout.addWidget(self.coords_label)
         status_layout.addWidget(coords_container)
@@ -449,6 +528,7 @@ class MainWindow(QMainWindow):
         )
 
     def update_filename_label(self, filename: str):
+        """بروزرسانی برچسب نام فایل"""
         self.current_filename = filename
         if filename:
             basename = os.path.basename(filename)
@@ -462,16 +542,19 @@ class MainWindow(QMainWindow):
                 Translations.get("status_file", self.current_lang) + ": -"
             )
 
-    def update_dimensions_label(self, width: int, height: int):
-        if width > 0 and height > 0:
-            self.dimensions_label.setText(
-                Translations.get("status_dimensions", self.current_lang)
-                + f": {width} × {height}"
-            )
+    def update_dimensions_labels(
+        self, input_w: int = 0, input_h: int = 0, output_w: int = 0, output_h: int = 0
+    ):
+        """بروزرسانی برچسب‌های ابعاد"""
+        if input_w > 0 and input_h > 0:
+            self.dimensions_input_label.setText(f"Input: {input_w} × {input_h}")
         else:
-            self.dimensions_label.setText(
-                Translations.get("status_dimensions", self.current_lang) + ": -"
-            )
+            self.dimensions_input_label.setText("Input: -")
+
+        if output_w > 0 and output_h > 0:
+            self.dimensions_output_label.setText(f"Output: {output_w} × {output_h}")
+        else:
+            self.dimensions_output_label.setText("Output: -")
 
     # ========== عملیات فایل ==========
 
@@ -485,7 +568,10 @@ class MainWindow(QMainWindow):
         )
 
         if filename:
+            self.log(f"Loading image: {os.path.basename(filename)}", "info")
+
             image = ImageManager.load_image(filename)
+
             if image is not None:
                 self.original_image = image
                 self.current_image = image.copy()
@@ -500,28 +586,31 @@ class MainWindow(QMainWindow):
                 self.settings.set("last_directory", os.path.dirname(filename))
                 self.settings.save()
 
-                # به‌روزرسانی UI
+                # بروزرسانی UI
                 self.update_filename_label(filename)
                 height, width = image.shape[:2]
-                self.update_dimensions_label(width, height)
+                self.update_dimensions_labels(width, height, width, height)
                 self.update_filter_label("original")
 
-                self.statusBar().showMessage(
-                    "✓ " + Translations.get("msg_image_loaded", self.current_lang), 3000
+                # ✅ Log موفقیت
+                self.log(
+                    f"Image loaded successfully: {width}×{height} pixels", "success"
                 )
+
             else:
+                # ✅ Log خطا
+                self.log(f"Failed to load image: {os.path.basename(filename)}", "error")
+
                 QMessageBox.critical(
                     self,
                     Translations.get("msg_error", self.current_lang),
                     "Error loading image!",
                 )
-                self.statusBar().showMessage(
-                    "✗ " + Translations.get("msg_error", self.current_lang), 3000
-                )
 
     def save_image(self):
         """ذخیره تصویر"""
         if self.current_image is None:
+            self.log("No image to save", "warning")
             QMessageBox.warning(
                 self,
                 Translations.get("msg_warning", self.current_lang),
@@ -529,7 +618,6 @@ class MainWindow(QMainWindow):
             )
             return
 
-        # فرمت پیشفرض از تنظیمات
         default_format = self.settings.get("default_format", "PNG")
         filter_str = f"{default_format} (*.{default_format.lower()});;All Files (*.*)"
 
@@ -541,22 +629,21 @@ class MainWindow(QMainWindow):
         )
 
         if filename:
-            # استفاده از کیفیت از تنظیمات
-            quality = self.settings.get_quality_value()
+            self.log(f"Saving image: {os.path.basename(filename)}", "info")
 
             if ImageManager.save_image(filename, self.current_image):
-                self.statusBar().showMessage(
-                    "✓ " + Translations.get("msg_image_saved", self.current_lang), 3000
+                self.log(
+                    f"Image saved successfully: {os.path.basename(filename)}", "success"
                 )
+
                 QMessageBox.information(
                     self,
                     Translations.get("msg_success", self.current_lang),
                     Translations.get("msg_image_saved", self.current_lang),
                 )
             else:
-                self.statusBar().showMessage(
-                    "✗ " + Translations.get("msg_error", self.current_lang), 3000
-                )
+                self.log(f"Failed to save image: {os.path.basename(filename)}", "error")
+
                 QMessageBox.critical(
                     self,
                     Translations.get("msg_error", self.current_lang),
@@ -566,18 +653,20 @@ class MainWindow(QMainWindow):
     def apply_filter(self, filter_name: str, params: dict):
         """اعمال فیلتر"""
         if self.original_image is None:
+            self.log("No image loaded to apply filter", "warning")
             return
 
         self.update_filter_label(filter_name)
 
         if filter_name == "original":
+            self.log("Reset to original image", "info")
             self.current_image = self.original_image.copy()
             self.processed_viewer.set_image(self.current_image)
             self.processed_histogram.set_image(self.current_image)
-            self.statusBar().showMessage(
-                "✓ " + Translations.get("filter_original", self.current_lang), 2000
-            )
             return
+
+        display_name = Translations.get_filter_name(filter_name, self.current_lang)
+        self.log(f"Applying filter: {display_name}...", "info")
 
         if self.processing_thread and self.processing_thread.isRunning():
             self.processing_thread.terminate()
@@ -586,26 +675,43 @@ class MainWindow(QMainWindow):
         self.processing_thread = ProcessingThread(
             self.original_image, filter_name, params
         )
+
         self.processing_thread.finished.connect(self.on_processing_finished)
         self.processing_thread.error.connect(self.on_processing_error)
         self.processing_thread.start()
 
-        self.statusBar().showMessage(
-            f"⏳ {Translations.get('msg_processing', self.current_lang)}...", 0
-        )
+        self.log(f"Processing started for '{display_name}'", "processing")
 
     def on_processing_finished(self, processed_image):
         """پایان پردازش"""
         self.current_image = processed_image
         self.processed_viewer.set_image(processed_image)
         self.processed_histogram.set_image(processed_image)
-        self.statusBar().showMessage(
-            f"✓ {Translations.get('msg_filter_applied', self.current_lang)}", 3000
-        )
+
+        # ✅ بروزرسانی سایز output
+        output_h, output_w = processed_image.shape[:2]
+        if self.original_image is not None:
+            input_h, input_w = self.original_image.shape[:2]
+            self.update_dimensions_labels(input_w, input_h, output_w, output_h)
+
+            if input_w == output_w and input_h == output_h:
+                self.log(
+                    f"✓ Filter applied successfully! Output: {output_w}×{output_h}",
+                    "success"
+                )
+            else:
+                self.log(
+                    f"✓ Filter applied! Input: {input_w}×{input_h} → Output: {output_w}×{output_h}",
+                    "success"
+                )
+
+        else:
+            self.log(f"Filter applied successfully ({output_w}×{output_h})", "success")
+
 
     def on_processing_error(self, error_message: str):
         """خطا در پردازش"""
-        self.statusBar().showMessage(f"✗ {error_message}", 5000)
+        self.log(f"Processing error: {error_message}", "error")
         QMessageBox.critical(
             self,
             Translations.get("msg_error", self.current_lang),
@@ -615,13 +721,14 @@ class MainWindow(QMainWindow):
     def reset_image(self):
         """بازنشانی"""
         if self.original_image is not None:
+            self.log("Resetting to original image", "info")
+
             self.current_image = self.original_image.copy()
             self.processed_viewer.set_image(self.current_image)
             self.processed_histogram.set_image(self.current_image)
             self.update_filter_label("original")
-            self.statusBar().showMessage(
-                "✓ " + Translations.get("msg_reset", self.current_lang), 3000
-            )
+
+            self.log("Image reset successfully", "success")
 
     # ========== Zoom ==========
 
@@ -647,8 +754,9 @@ class MainWindow(QMainWindow):
             self.original_histogram.reset_zoom()
 
     def show_custom_kernel_dialog(self):
-        """نمایش دیالوگ Custom Kernel"""
         from ui.custom_kernel_dialog import CustomKernelDialog
+
+        self.log("Opening Custom Kernel dialog", "info")
 
         dialog = CustomKernelDialog(self)
         dialog.kernel_ready.connect(self.apply_custom_kernel)
@@ -657,7 +765,14 @@ class MainWindow(QMainWindow):
     def apply_custom_kernel(self, kernel: np.ndarray, normalize: bool, padding: str):
         """اعمال Custom Kernel"""
         if self.original_image is None:
+            self.log("No image loaded for custom kernel", "warning")
             return
+        
+        self.log(
+            f"Applying custom kernel ({kernel.shape[0]}×{kernel.shape[1]}, "
+            f"normalize={normalize}, padding={padding})",
+            "info"
+        )
 
         params = {
             "kernel": kernel,
@@ -666,3 +781,42 @@ class MainWindow(QMainWindow):
         }
 
         self.apply_filter("conv_custom", params)
+
+    def log(self, message: str, level: str = "info"):
+        import datetime
+
+        timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+
+        if level == "info":
+            icon = "ℹ️"
+            color = config.Colors.PRIMARY
+        elif level == "success":
+            icon = "✅"
+            color = config.Colors.SUCCESS
+        elif level == "error":
+            icon = "❌"
+            color = config.Colors.ERROR
+        elif level == "warning":
+            icon = "⚠️"
+            color = "#FFA500"
+        elif level == "processing":
+            icon = "⏳"
+            color = "#00BFFF"
+        else:
+            icon = "📝"
+            color = config.Colors.TEXT
+
+        formatted_msg = (
+            f'<span style="color: {config.Colors.TEXT_SECONDARY};">[{timestamp}]</span> '
+            f'<span style="color: {color}; font-weight: 600;">{icon}</span> '
+            f'<span style="color: {config.Colors.TEXT};">{message}</span>'
+        )
+
+        self.console_text.append(formatted_msg)
+
+        # cursor = self.console_text.textCursor()
+        # cursor.movePosition(QTextCursor.MoveOperation.End)
+        # self.console_text.setTextCursor(cursor)
+
+        scrollbar = self.console_text.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
