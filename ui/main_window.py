@@ -46,6 +46,7 @@ class MainWindow(QMainWindow):
         # عنوان پنجره
         self.setWindowTitle(Translations.get("app_title", self.current_lang))
         self.setGeometry(100, 100, config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
+        self.setMinimumSize(config.WINDOW_MIN_WIDTH, config.WINDOW_MIN_HEIGHT)
 
         # متغیرها
         self.original_image = None
@@ -74,12 +75,17 @@ class MainWindow(QMainWindow):
 
         # Layout اصلی
         content_layout = QHBoxLayout()
-        content_layout.setSpacing(10)
-        content_layout.setContentsMargins(10, 10, 10, 5)
+        content_layout.setSpacing(config.Layout.SPACING_MEDIUM)
+        content_layout.setContentsMargins(
+            config.Layout.PADDING_MEDIUM,
+            config.Layout.PADDING_MEDIUM,
+            config.Layout.PADDING_MEDIUM,
+            config.Layout.PADDING_SMALL,
+        )
 
         # پنل کنترل
         self.control_panel = ControlPanel()
-        self.control_panel.setFixedWidth(330)
+        self.control_panel.setFixedWidth(config.CONTROL_PANEL_WIDTH)
         self.control_panel.filter_changed.connect(self.apply_filter)
         self.control_panel.load_clicked.connect(self.load_image)
         self.control_panel.save_clicked.connect(self.save_image)
@@ -88,9 +94,7 @@ class MainWindow(QMainWindow):
         self.control_panel.zoom_in_clicked.connect(self.zoom_in_viewers)
         self.control_panel.zoom_out_clicked.connect(self.zoom_out_viewers)
         self.control_panel.zoom_reset_clicked.connect(self.zoom_reset_viewers)
-        self.control_panel.custom_kernel_clicked.connect(
-            self.show_custom_kernel_dialog
-        )  # ✅
+        self.control_panel.custom_kernel_clicked.connect(self.show_custom_kernel_dialog)
 
         content_layout.addWidget(self.control_panel)
 
@@ -117,15 +121,19 @@ class MainWindow(QMainWindow):
         content_layout.addWidget(self.view_tabs, stretch=1)
         main_layout.addLayout(content_layout)
 
-        # ========== ✅ Console Log (جدید!) ==========
         console_group = QGroupBox("📋 Console / Processing Log")
-        console_group.setMaximumHeight(150)
+        console_group.setMaximumHeight(config.CONSOLE_HEIGHT)
         console_layout = QVBoxLayout()
-        console_layout.setContentsMargins(8, 8, 8, 8)
+        console_layout.setContentsMargins(
+            config.Layout.PADDING_SMALL,
+            config.Layout.PADDING_SMALL,
+            config.Layout.PADDING_SMALL,
+            config.Layout.PADDING_SMALL
+        )
 
         self.console_text = QTextEdit()
         self.console_text.setReadOnly(True)
-        self.console_text.setMaximumHeight(120)
+        self.console_text.setMaximumHeight(config.CONSOLE_HEIGHT - 20)
         self.console_text.setStyleSheet(
             f"""
             QTextEdit {{
@@ -697,17 +705,16 @@ class MainWindow(QMainWindow):
             if input_w == output_w and input_h == output_h:
                 self.log(
                     f"✓ Filter applied successfully! Output: {output_w}×{output_h}",
-                    "success"
+                    "success",
                 )
             else:
                 self.log(
                     f"✓ Filter applied! Input: {input_w}×{input_h} → Output: {output_w}×{output_h}",
-                    "success"
+                    "success",
                 )
 
         else:
             self.log(f"Filter applied successfully ({output_w}×{output_h})", "success")
-
 
     def on_processing_error(self, error_message: str):
         """خطا در پردازش"""
@@ -767,11 +774,11 @@ class MainWindow(QMainWindow):
         if self.original_image is None:
             self.log("No image loaded for custom kernel", "warning")
             return
-        
+
         self.log(
             f"Applying custom kernel ({kernel.shape[0]}×{kernel.shape[1]}, "
             f"normalize={normalize}, padding={padding})",
-            "info"
+            "info",
         )
 
         params = {

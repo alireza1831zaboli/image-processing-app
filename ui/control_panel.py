@@ -15,6 +15,8 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QGroupBox,
     QGridLayout,
+    QCheckBox,
+    QScrollArea,
 )
 from PySide6.QtCore import Qt, Signal
 import config
@@ -58,14 +60,39 @@ class ControlPanel(QWidget):
         # ذخیره پارامترها
         self.param_widgets = {}
         self.current_filter = None
+        self.auto_apply = True
 
         self.setup_ui()
 
     def setup_ui(self):
         """ساخت UI"""
         main_layout = QVBoxLayout(self)
-        main_layout.setSpacing(8)
-        main_layout.setContentsMargins(8, 8, 8, 8)
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # ✅ Scroll Area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setStyleSheet(
+            """
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+        """
+        )
+
+        # Widget داخل scroll
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setSpacing(config.Layout.SPACING_SMALL)  # ✅ 2px
+        scroll_layout.setContentsMargins(
+            config.Layout.PADDING_SMALL,
+            config.Layout.PADDING_SMALL,
+            config.Layout.PADDING_SMALL,
+            config.Layout.PADDING_SMALL,
+        )
 
         # عنوان
         if USE_TRANSLATIONS:
@@ -78,9 +105,9 @@ class ControlPanel(QWidget):
             f"""
             QLabel {{
                 color: {config.Colors.PRIMARY};
-                font-size: 16px;
+                font-size: {config.Fonts.SIZE_HEADER}px;  # ✅ 11px
                 font-weight: 600;
-                padding: 6px;
+                padding: {config.Layout.PADDING_SMALL}px;
             }}
         """
         )
@@ -95,6 +122,10 @@ class ControlPanel(QWidget):
 
         # ✅ بعد پارامترها رو به layout اضافه کن
         main_layout.addWidget(self.params_group)
+
+        # ✅ دکمه Apply + Toggle
+        apply_group = self.create_apply_group()
+        main_layout.addWidget(apply_group)
 
         # عملیات
         operations_group = self.create_operations_group()
@@ -119,6 +150,93 @@ class ControlPanel(QWidget):
         )
         main_layout.addWidget(hint)
 
+    def create_apply_group(self):
+        """گروه Apply و Auto-Apply"""
+        group = QGroupBox("🎯 Apply Filter")
+        layout = QVBoxLayout()
+        layout.setSpacing(6)
+
+        # ✅ Toggle برای Auto-Apply
+        auto_layout = QHBoxLayout()
+        self.auto_apply_check = QCheckBox("Auto-Apply on Change")
+        self.auto_apply_check.setChecked(True)
+        self.auto_apply_check.setToolTip(
+            "When enabled, filter applies automatically.\n"
+            "When disabled, you need to click Apply button."
+        )
+
+        # ✅ استفاده از toggled به جای stateChanged
+        self.auto_apply_check.toggled.connect(self.on_auto_apply_toggled)
+
+        auto_layout.addWidget(self.auto_apply_check)
+        layout.addLayout(auto_layout)
+
+        # ✅ دکمه Apply
+        self.apply_btn = QPushButton("✅ Apply Filter")
+        self.apply_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
+        self.apply_btn.setEnabled(False)
+        self.apply_btn.clicked.connect(self.on_apply_clicked)
+        layout.addWidget(self.apply_btn)
+
+        group.setLayout(layout)
+        return group
+
+    def on_auto_apply_toggled(self, checked):
+        """✅ تغییر حالت Auto-Apply - با toggled signal"""
+        was_auto = self.auto_apply
+        self.auto_apply = checked
+
+        print(f"[Auto-Apply] Toggled: {was_auto} → {self.auto_apply}")
+
+        # ✅ فعال/غیرفعال کردن دکمه Apply
+        self.apply_btn.setEnabled(not self.auto_apply)
+
+        # ✅ اگر auto-apply فعال شد و فیلتر داریم، فوراً اعمال کن
+        if self.auto_apply and not was_auto and self.current_filter:
+            print(f"[Auto-Apply] Just enabled! Applying filter: {self.current_filter}")
+            params = self.get_current_params()
+            self.filter_changed.emit(self.current_filter, params)
+
+    def on_auto_apply_changed(self, state):
+        was_auto = self.auto_apply
+        self.auto_apply = state == Qt.Checked
+
+        print(f"[Auto-Apply] Changed: {was_auto} → {self.auto_apply}")  # Debug
+
+        self.apply_btn.setEnabled(not self.auto_apply)
+
+        if self.auto_apply and self.current_filter:
+            print(f"[Auto-Apply] Applying filter: {self.current_filter}")  # Debug
+            params = self.get_current_params()
+            self.filter_changed.emit(self.current_filter, params)
+
+        if self.auto_apply:
+            self.reconnect_param_signals()
+
+    def reconnect_param_signals(self):
+        """✅ اتصال مجدد signal های پارامترها"""
+        for param_name, widget in self.param_widgets.items():
+            if isinstance(widget, QSlider):
+                # قطع و وصل مجدد
+                try:
+                    widget.valueChanged.disconnect()
+                except:
+                    pass
+                widget.valueChanged.connect(self.on_params_changed)
+
+            elif isinstance(widget, (QDoubleSpinBox, QSpinBox)):
+                try:
+                    widget.valueChanged.disconnect()
+                except:
+                    pass
+                widget.valueChanged.connect(self.on_params_changed)
+
+    def on_apply_clicked(self):
+        """کلیک روی دکمه Apply"""
+        if self.current_filter:
+            params = self.get_current_params()
+            self.filter_changed.emit(self.current_filter, params)
+
     def create_filter_group(self):
         """گروه فیلتر"""
         group = QGroupBox("🎨 Filters")
@@ -127,7 +245,7 @@ class ControlPanel(QWidget):
 
         # دستهبندی
         self.category_combo = QComboBox()
-        self.category_combo.setMinimumHeight(32)
+        self.category_combo.setMinimumHeight(config.Layout.CONTROL_HEIGHT)
 
         if USE_TRANSLATIONS:
             self.category_combo.addItem(
@@ -160,7 +278,7 @@ class ControlPanel(QWidget):
 
         # فیلتر
         self.filter_combo = QComboBox()
-        self.filter_combo.setMinimumHeight(32)
+        self.filter_combo.setMinimumHeight(config.Layout.CONTROL_HEIGHT)
         self.filter_combo.currentIndexChanged.connect(self.on_filter_changed)
         layout.addWidget(self.filter_combo)
 
@@ -189,7 +307,7 @@ class ControlPanel(QWidget):
             QLabel {{
                 color: {config.Colors.TEXT_MUTED};
                 padding: 20px;
-                font-size: 12px;
+                font-size: {config.Fonts.SIZE_SMALL}px;
             }}
         """
         )
@@ -209,15 +327,15 @@ class ControlPanel(QWidget):
         layout.setSpacing(6)
 
         self.load_btn = QPushButton("📁 Load")
-        self.load_btn.setMinimumHeight(36)
+        self.load_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.load_btn.clicked.connect(self.load_clicked.emit)
 
         self.save_btn = QPushButton("💾 Save")
-        self.save_btn.setMinimumHeight(36)
+        self.save_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.save_btn.clicked.connect(self.save_clicked.emit)
 
         self.settings_btn = QPushButton("⚙️ Settings")
-        self.settings_btn.setMinimumHeight(36)
+        self.settings_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.settings_btn.clicked.connect(self.settings_clicked.emit)
 
         layout.addWidget(self.load_btn, 0, 0)
@@ -234,19 +352,19 @@ class ControlPanel(QWidget):
         layout.setSpacing(6)
 
         self.zoom_in_btn = QPushButton("➕")
-        self.zoom_in_btn.setMinimumHeight(32)
+        self.zoom_in_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.zoom_in_btn.clicked.connect(self.zoom_in_clicked.emit)
 
         self.zoom_out_btn = QPushButton("➖")
-        self.zoom_out_btn.setMinimumHeight(32)
+        self.zoom_out_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.zoom_out_btn.clicked.connect(self.zoom_out_clicked.emit)
 
         self.zoom_reset_btn = QPushButton("🔄 Reset")
-        self.zoom_reset_btn.setMinimumHeight(32)
+        self.zoom_reset_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.zoom_reset_btn.clicked.connect(self.zoom_reset_clicked.emit)
 
         self.reset_btn = QPushButton("↺ Reset All")
-        self.reset_btn.setMinimumHeight(32)
+        self.reset_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.reset_btn.clicked.connect(self.reset_clicked.emit)
 
         layout.addWidget(self.zoom_in_btn, 0, 0)
@@ -342,7 +460,13 @@ class ControlPanel(QWidget):
                 self.filter_combo.addItem(display_name, filter_key)
 
         self.filter_combo.blockSignals(False)
-        self.on_filter_changed()
+
+        if self.filter_combo.count() > 0:
+            filter_key = self.filter_combo.currentData()
+            if filter_key:
+                self.current_filter = filter_key
+                self.clear_params()
+                self.create_filter_params(filter_key)
 
     def on_filter_changed(self):
         """تغییر فیلتر - بروزرسانی پارامترها"""
@@ -365,8 +489,9 @@ class ControlPanel(QWidget):
         self.create_filter_params(filter_key)
 
         # ارسال سیگنال
-        params = self.get_current_params()
-        self.filter_changed.emit(filter_key, params)
+        if self.auto_apply:
+            params = self.get_current_params()
+            self.filter_changed.emit(filter_key, params)
 
     def clear_params(self):
         """پاک کردن همه پارامترها"""
@@ -405,7 +530,7 @@ class ControlPanel(QWidget):
                 QLabel {{
                     color: {config.Colors.TEXT_MUTED};
                     padding: 20px;
-                    font-size: 12px;
+                    font-size: {config.Fonts.SIZE_SMALL}px;
                 }}
             """
             )
@@ -674,7 +799,7 @@ class ControlPanel(QWidget):
 
         # Label
         label = QLabel(config["label"] + ":")
-        label.setFixedWidth(90)
+        label.setFixedWidth(70)
         container.addWidget(label)
 
         if config["type"] == "slider":
@@ -684,13 +809,16 @@ class ControlPanel(QWidget):
             slider.setMaximum(config["max"])
             slider.setValue(config["default"])
             slider.setSingleStep(config.get("step", 1))
-            slider.setMinimumHeight(24)
+            slider.setMinimumHeight(20)
 
             value_label = QLabel(str(config["default"]))
-            value_label.setFixedWidth(40)
+            value_label.setFixedWidth(38)
             value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
+            # ✅ Lambda برای update label
             slider.valueChanged.connect(lambda v: value_label.setText(str(v)))
+
+            # ✅ اتصال به on_params_changed
             slider.valueChanged.connect(self.on_params_changed)
 
             container.addWidget(slider)
@@ -704,8 +832,10 @@ class ControlPanel(QWidget):
             spinbox.setRange(config["min"], config["max"])
             spinbox.setValue(config["default"])
             spinbox.setSingleStep(config.get("step", 0.1))
-            spinbox.setMinimumHeight(32)
+            spinbox.setMinimumHeight(28)
             spinbox.setDecimals(1)
+
+            # ✅ اتصال به on_params_changed
             spinbox.valueChanged.connect(self.on_params_changed)
 
             container.addWidget(spinbox)
@@ -729,7 +859,16 @@ class ControlPanel(QWidget):
         return params
 
     def on_params_changed(self):
-        """تغییر پارامترها"""
-        if self.current_filter:
+        """✅ تغییر پارامترها با لاگ"""
+        print(f"[Params] Changed. Auto-apply: {self.auto_apply}")  # Debug
+
+        if self.auto_apply and self.current_filter:
             params = self.get_current_params()
+            print(
+                f"[Params] Emitting filter_changed for: {self.current_filter}"
+            )  # Debug
             self.filter_changed.emit(self.current_filter, params)
+        else:
+            print(
+                f"[Params] Not applying (auto_apply={self.auto_apply}, filter={self.current_filter})"
+            )
