@@ -55,6 +55,7 @@ class Colors:
     PRIMARY = "#0d7377"
     PRIMARY_LIGHT = "#14a085"
     PRIMARY_DARK = "#0a5f62"
+    PRIMARY_HOVER = "#0078D4"
 
     # متن
     TEXT = "#e6edf3"

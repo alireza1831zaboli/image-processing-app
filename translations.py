@@ -49,6 +49,21 @@ class Translations:
         "category_enhancement": {"fa": "لبه‌یابی", "en": "Enhancement"},
         "category_photogrammetry": {"fa": "فتوگرامتری", "en": "Photogrammetry"},
         "category_advanced": {"fa": "خلاقانه", "en": "Creative"},
+        "category_transformation": {"fa": "تبدیل هندسی", "en": "Transformation"},
+        # فیلترهای Transformation - جدید! ✅
+        "filter_transform_direct": {"fa": "نقشه‌برداری مستقیم", "en": "Direct Map"},
+        "filter_transform_inverse_nn": {
+            "fa": "نقشه‌برداری معکوس (NN)",
+            "en": "Inverse Map (NN)",
+        },
+        "filter_transform_inverse_bilinear": {
+            "fa": "نقشه‌برداری معکوس (دوخطی)",
+            "en": "Inverse Map (Bilinear)",
+        },
+        "filter_transform_inverse_bicubic": {
+            "fa": "نقشه‌برداری معکوس (دومکعبی)",
+            "en": "Inverse Map (Bicubic)",
+        },
         # فیلترها
         "filter_original": {"fa": "اصلی", "en": "Original"},
         "filter_grayscale": {"fa": "خاکستری", "en": "Grayscale"},

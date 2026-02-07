@@ -14,7 +14,8 @@ from filters.edge_filters import FILTER_MAP as EDGE_FILTERS
 from filters.photogrammetry import FILTER_MAP as PHOTO_FILTERS
 from filters.creative_filters import FILTER_MAP as CREATIVE_FILTERS
 from filters.color_filters import FILTER_MAP as COLOR_FILTERS
-from filters.convolution_filters import FILTER_MAP as CONV_FILTERS  # جدید!
+from filters.convolution_filters import FILTER_MAP as CONV_FILTERS
+from filters.transformation_filters import FILTER_MAP as TRANSFORM_FILTERS
 
 
 class ImageManager:
@@ -27,7 +28,8 @@ class ImageManager:
         **PHOTO_FILTERS,
         **CREATIVE_FILTERS,
         **COLOR_FILTERS,
-        **CONV_FILTERS,  # اضافه شد!
+        **CONV_FILTERS,
+        **TRANSFORM_FILTERS, 
     }
 
     @staticmethod
@@ -79,7 +81,8 @@ class ImageManager:
             "photo": list(PHOTO_FILTERS.keys()),
             "creative": list(CREATIVE_FILTERS.keys()),
             "color": list(COLOR_FILTERS.keys()),
-            "convolution": list(CONV_FILTERS.keys()),  # جدید!
+            "convolution": list(CONV_FILTERS.keys()),
+            "transformation": list(TRANSFORM_FILTERS.keys()),
         }
 
     @staticmethod

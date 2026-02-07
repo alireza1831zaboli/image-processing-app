@@ -47,6 +47,7 @@ class ControlPanel(QWidget):
     zoom_out_clicked = Signal()
     zoom_reset_clicked = Signal()
     custom_kernel_clicked = Signal()
+    transformation_clicked = Signal()
 
     def __init__(self):
         super().__init__()
@@ -57,7 +58,6 @@ class ControlPanel(QWidget):
         else:
             self.current_lang = "fa"
 
-        # ذخیره پارامترها
         self.param_widgets = {}
         self.current_filter = None
         self.auto_apply = True
@@ -65,12 +65,10 @@ class ControlPanel(QWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        """ساخت UI"""
         main_layout = QVBoxLayout(self)
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # ✅ Scroll Area
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -265,6 +263,7 @@ class ControlPanel(QWidget):
                 "creative",
             )
             self.category_combo.addItem("🔲 Convolution", "convolution")
+            self.category_combo.addItem("🔄 Transformation", "transformation")
         else:
             self.category_combo.addItem("🎨 Base", "base")
             self.category_combo.addItem("✨ Edge Detection", "edge")
@@ -272,6 +271,7 @@ class ControlPanel(QWidget):
             self.category_combo.addItem("🌈 Color", "color")
             self.category_combo.addItem("🎭 Creative", "creative")
             self.category_combo.addItem("🔲 Convolution", "convolution")
+            self.category_combo.addItem("🔄 Transformation", "transformation")
 
         self.category_combo.currentIndexChanged.connect(self.on_category_changed)
         layout.addWidget(self.category_combo)
@@ -449,8 +449,19 @@ class ControlPanel(QWidget):
         self.on_category_changed(0)
 
     def on_category_changed(self, index):
-        """تغییر دستهبندی"""
         category = self.category_combo.currentData()
+
+        print(f"[Category Changed] Selected: {category}")  # Debug
+
+        if category == "transformation":
+            print("[Category] Opening Transformation dialog directly")
+            self.transformation_clicked.emit()
+            self.category_combo.blockSignals(True)
+            self.filter_combo.blockSignals(True)
+            self.category_combo.setCurrentIndex(0)
+            self.filter_combo.blockSignals(False)
+            self.category_combo.blockSignals(False)
+            category = "base"  # ← اجباری به base تغییر بده
 
         self.filter_combo.blockSignals(True)
         self.filter_combo.clear()
@@ -475,20 +486,19 @@ class ControlPanel(QWidget):
         if not filter_key:
             return
 
-        # Custom Kernel به صورت جدا
+        print(f"[Filter Changed] Selected: {filter_key}")
+
         if filter_key == "conv_custom":
+            print("[Filter Changed] Opening Custom Kernel dialog")
             self.custom_kernel_clicked.emit()
             return
 
         self.current_filter = filter_key
 
-        # پاک کردن پارامترهای قبلی
         self.clear_params()
 
-        # ساخت پارامترهای جدید
         self.create_filter_params(filter_key)
 
-        # ارسال سیگنال
         if self.auto_apply:
             params = self.get_current_params()
             self.filter_changed.emit(filter_key, params)

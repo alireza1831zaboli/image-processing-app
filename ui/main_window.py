@@ -25,6 +25,7 @@ from ui.synced_histogram_viewer import SyncedHistogramViewer
 from ui.control_panel import ControlPanel
 from ui.settings_dialog import SettingsDialog
 from ui.styles import get_main_stylesheet
+from ui.transformation_dialog import TransformationDialog
 from core.image_manager import ImageManager
 from core.processing_thread import ProcessingThread
 from translations import Translations
@@ -62,7 +63,7 @@ class MainWindow(QMainWindow):
 
         self.setup_ui()
         self.setStyleSheet(get_main_stylesheet())
-        self.control_panel.custom_kernel_clicked.connect(self.show_custom_kernel_dialog)
+        # self.control_panel.custom_kernel_clicked.connect(self.show_custom_kernel_dialog)
 
     def setup_ui(self):
         """ساخت UI"""
@@ -95,6 +96,9 @@ class MainWindow(QMainWindow):
         self.control_panel.zoom_out_clicked.connect(self.zoom_out_viewers)
         self.control_panel.zoom_reset_clicked.connect(self.zoom_reset_viewers)
         self.control_panel.custom_kernel_clicked.connect(self.show_custom_kernel_dialog)
+        self.control_panel.transformation_clicked.connect(
+            self.show_transformation_dialog
+        )
 
         content_layout.addWidget(self.control_panel)
 
@@ -128,7 +132,7 @@ class MainWindow(QMainWindow):
             config.Layout.PADDING_SMALL,
             config.Layout.PADDING_SMALL,
             config.Layout.PADDING_SMALL,
-            config.Layout.PADDING_SMALL
+            config.Layout.PADDING_SMALL,
         )
 
         self.console_text = QTextEdit()
@@ -788,6 +792,44 @@ class MainWindow(QMainWindow):
         }
 
         self.apply_filter("conv_custom", params)
+
+    def show_transformation_dialog(self):
+        if self.original_image is None:
+            self.log("No image loaded for transformation", "warning")
+            QMessageBox.warning(
+                self,
+                Translations.get("msg_warning", self.current_lang),
+                "Please load an image first!",
+            )
+            return
+
+        self.log("Opening Transformation dialog", "info")
+        dialog = TransformationDialog(self)
+        dialog.transformation_ready.connect(self.apply_transformation)
+        dialog.exec()
+
+    def apply_transformation(self, method: str, params: dict):
+        if self.original_image is None:
+            self.log("No image loaded for transformation", "warning")
+            return
+
+        rotation = params.get("rotation", 0)
+        scale = params.get("scale", 1.0)
+        brightness = params.get("brightness", 0)
+
+        method_name = {
+            "transform_direct": "Direct Map",
+            "transform_inverse_nn": "Inverse Map (NN)",
+            "transform_inverse_bilinear": "Inverse Map (Bilinear)",
+            "transform_inverse_bicubic": "Inverse Map (Bicubic)",
+        }.get(method, method)
+
+        self.log(
+            f"Applying {method_name}: R={rotation}°, S={scale:.1f}x, B={brightness:+d}",
+            "info",
+        )
+
+        self.apply_filter(method, params)
 
     def log(self, message: str, level: str = "info"):
         import datetime
