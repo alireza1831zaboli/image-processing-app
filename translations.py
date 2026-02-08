@@ -50,6 +50,7 @@ class Translations:
         "category_photogrammetry": {"fa": "فتوگرامتری", "en": "Photogrammetry"},
         "category_advanced": {"fa": "خلاقانه", "en": "Creative"},
         "category_transformation": {"fa": "تبدیل هندسی", "en": "Transformation"},
+        "category_point_detection": {"fa": "تشخیص نقاط", "en": "Point Detection"},
         # فیلترهای Transformation - جدید! ✅
         "filter_transform_direct": {"fa": "نقشه‌برداری مستقیم", "en": "Direct Map"},
         "filter_transform_inverse_nn": {
@@ -95,6 +96,11 @@ class Translations:
         "filter_saturation": {"fa": "اشباع", "en": "Saturation"},
         "filter_brightness": {"fa": "روشنایی", "en": "Brightness"},
         "filter_temperature": {"fa": "دما", "en": "Temperature"},
+
+        # Point Detection filters (Project #3)
+        "filter_moravec_corner": {"fa": "Moravec", "en": "Moravec"},
+        "filter_haralick_corner": {"fa": "Haralick", "en": "Haralick"},
+        "filter_harris_corner": {"fa": "Harris", "en": "Harris"},
         # پارامترها
         "blur_amount": {"fa": "اندازه Blur", "en": "Blur Amount"},
         "clahe_value": {"fa": "CLAHE", "en": "CLAHE"},

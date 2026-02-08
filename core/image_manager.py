@@ -16,6 +16,7 @@ from filters.creative_filters import FILTER_MAP as CREATIVE_FILTERS
 from filters.color_filters import FILTER_MAP as COLOR_FILTERS
 from filters.convolution_filters import FILTER_MAP as CONV_FILTERS
 from filters.transformation_filters import FILTER_MAP as TRANSFORM_FILTERS
+from filters.point_detection_filters import FILTER_MAP as POINT_DETECTION_FILTERS
 
 
 class ImageManager:
@@ -29,7 +30,8 @@ class ImageManager:
         **CREATIVE_FILTERS,
         **COLOR_FILTERS,
         **CONV_FILTERS,
-        **TRANSFORM_FILTERS, 
+        **TRANSFORM_FILTERS,
+        **POINT_DETECTION_FILTERS,
     }
 
     @staticmethod
@@ -83,6 +85,7 @@ class ImageManager:
             "color": list(COLOR_FILTERS.keys()),
             "convolution": list(CONV_FILTERS.keys()),
             "transformation": list(TRANSFORM_FILTERS.keys()),
+            "point_detection": list(POINT_DETECTION_FILTERS.keys()),
         }
 
     @staticmethod

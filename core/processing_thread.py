@@ -11,7 +11,7 @@ from core.image_manager import ImageManager
 class ProcessingThread(QThread):
     """ترد جداگانه برای پردازش تصاویر بدون فریز UI"""
 
-    finished = Signal(np.ndarray)  # سیگنال اتمام با نتیجه
+    result = Signal(np.ndarray)  # سیگنال اتمام با نتیجه
     error = Signal(str)  # سیگنال خطا
     progress = Signal(int)  # سیگنال پیشرفت (اختیاری)
 
@@ -35,7 +35,7 @@ class ProcessingThread(QThread):
             )
 
             if self._is_running:
-                self.finished.emit(result)
+                self.result.emit(result)
 
         except Exception as e:
             if self._is_running:

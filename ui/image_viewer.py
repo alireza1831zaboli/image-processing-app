@@ -159,16 +159,33 @@ class ImageViewer(QScrollArea):
                     bytes_per_line,
                     QImage.Format_Grayscale8,
                 )
-            else:  # RGB
+            else:  # Color (OpenCV loads BGR by default)
                 height, width, channels = image_array.shape
+                # QImage needs a contiguous buffer
+                image_array = np.ascontiguousarray(image_array)
+
                 bytes_per_line = channels * width
-                q_image = QImage(
-                    image_array.data,
-                    width,
-                    height,
-                    bytes_per_line,
-                    QImage.Format_RGB888,
-                )
+
+                # Prefer BGR888 to avoid channel swapping (Qt6)
+                if hasattr(QImage, "Format_BGR888"):
+                    q_image = QImage(
+                        image_array.data,
+                        width,
+                        height,
+                        bytes_per_line,
+                        QImage.Format_BGR888,
+                    )
+                else:
+                    # Fallback: convert to RGB for older Qt builds
+                    rgb = np.ascontiguousarray(image_array[:, :, ::-1])
+                    q_image = QImage(
+                        rgb.data,
+                        width,
+                        height,
+                        bytes_per_line,
+                        QImage.Format_RGB888,
+                    )
+
 
             # تبدیل به pixmap و ذخیره
             self.original_pixmap = QPixmap.fromImage(q_image)

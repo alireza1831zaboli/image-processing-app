@@ -69,22 +69,23 @@ class ControlPanel(QWidget):
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
+        # NOTE: Control panel can have many params (e.g. Harris) and must not break
+        # the layout when the window is resized. We put all groups inside a QScrollArea.
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setFrameShape(QScrollArea.NoFrame)
         scroll.setStyleSheet(
             """
-            QScrollArea {
-                border: none;
-                background: transparent;
-            }
-        """
+            QScrollArea { border: none; background: transparent; }
+            QScrollBar:vertical { width: 10px; }
+            """
         )
 
-        # Widget داخل scroll
+        # Widget inside scroll
         scroll_content = QWidget()
         scroll_layout = QVBoxLayout(scroll_content)
-        scroll_layout.setSpacing(config.Layout.SPACING_SMALL)  # ✅ 2px
+        scroll_layout.setSpacing(config.Layout.SPACING_SMALL)
         scroll_layout.setContentsMargins(
             config.Layout.PADDING_SMALL,
             config.Layout.PADDING_SMALL,
@@ -116,24 +117,27 @@ class ControlPanel(QWidget):
 
         # ✅ بعد فیلترها
         filter_group = self.create_filter_group()
-        main_layout.addWidget(filter_group)
+        scroll_layout.addWidget(filter_group)
 
-        # ✅ بعد پارامترها رو به layout اضافه کن
-        main_layout.addWidget(self.params_group)
+        # ✅ بعد پارامترها
+        scroll_layout.addWidget(self.params_group)
 
-        # ✅ دکمه Apply + Toggle
+        # ✅ Apply + Toggle
         apply_group = self.create_apply_group()
-        main_layout.addWidget(apply_group)
+        scroll_layout.addWidget(apply_group)
 
         # عملیات
         operations_group = self.create_operations_group()
-        main_layout.addWidget(operations_group)
+        scroll_layout.addWidget(operations_group)
 
         # Zoom
         zoom_group = self.create_zoom_group()
-        main_layout.addWidget(zoom_group)
+        scroll_layout.addWidget(zoom_group)
 
-        main_layout.addStretch()
+        scroll_layout.addStretch(1)
+
+        scroll.setWidget(scroll_content)
+        main_layout.addWidget(scroll, 1)
 
         # راهنما
         hint = QLabel("💡 Mouse Wheel: Zoom")
@@ -251,7 +255,7 @@ class ControlPanel(QWidget):
             )
             self.category_combo.addItem(
                 "✨ " + Translations.get("category_enhancement", self.current_lang),
-                "enhancement",
+                "edge",
             )
             self.category_combo.addItem(
                 "📷 " + Translations.get("category_photogrammetry", self.current_lang),
@@ -263,6 +267,10 @@ class ControlPanel(QWidget):
                 "creative",
             )
             self.category_combo.addItem("🔲 Convolution", "convolution")
+            self.category_combo.addItem(
+                "📍 " + Translations.get("category_point_detection", self.current_lang),
+                "point_detection",
+            )
             self.category_combo.addItem("🔄 Transformation", "transformation")
         else:
             self.category_combo.addItem("🎨 Base", "base")
@@ -271,6 +279,7 @@ class ControlPanel(QWidget):
             self.category_combo.addItem("🌈 Color", "color")
             self.category_combo.addItem("🎭 Creative", "creative")
             self.category_combo.addItem("🔲 Convolution", "convolution")
+            self.category_combo.addItem("📍 Point Detection", "point_detection")
             self.category_combo.addItem("🔄 Transformation", "transformation")
 
         self.category_combo.currentIndexChanged.connect(self.on_category_changed)
@@ -443,6 +452,11 @@ class ControlPanel(QWidget):
                 ("conv_edge_enhance", "Edge Enhance"),
                 ("conv_outline", "Outline"),
                 ("conv_custom", "🎨 Custom Kernel"),
+            ],
+            "point_detection": [
+                ("moravec_corner", "Moravec"),
+                ("haralick_corner", "Haralick"),
+                ("harris_corner", "Harris"),
             ],
         }
 
@@ -795,6 +809,168 @@ class ControlPanel(QWidget):
                     "label": "Dynamic Ratio",
                 },
             },
+
+            # Point Detection (Project #3)
+            "moravec_corner": {
+                "threshold": {
+                    "type": "double",
+                    "min": 0.0,
+                    "max": 50000.0,
+                    "default": 2500.0,
+                    "step": 50.0,
+                    "label": "Threshold",
+                },
+                "nms_window": {
+                    "type": "slider",
+                    "min": 3,
+                    "max": 31,
+                    "default": 7,
+                    "step": 2,
+                    "label": "Local Max Window",
+                },
+                "max_points": {
+                    "type": "slider",
+                    "min": 0,
+                    "max": 1000,
+                    "default": 300,
+                    "step": 50,
+                    "label": "Max Points (0=all)",
+                },
+                "circle_radius": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 10,
+                    "default": 3,
+                    "step": 1,
+                    "label": "Circle Radius",
+                },
+                "circle_thickness": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 5,
+                    "default": 1,
+                    "step": 1,
+                    "label": "Circle Thickness",
+                },
+            },
+
+            "haralick_corner": {
+                # Using percentile makes the threshold robust across different images.
+                # Threshold is applied on w=det(Hessian) (higher is more corner-like).
+                "thresh_w": {
+                    "type": "double",
+                    "min": 0.0,
+                    "max": 1000000000.0,
+                    "default": 0.0,
+                    "step": 1000.0,
+                    "label": "Threshold w (0=auto)",
+                    "decimals": 2,
+                },
+                "thresh_q": {
+                    "type": "double",
+                    "min": 0.0,
+                    "max": 1.0,
+                    "default": 0.5,
+                    "step": 0.05,
+                    "label": "Threshold q",
+                    "decimals": 2,
+                },
+                "nms_window": {
+                    "type": "slider",
+                    "min": 3,
+                    "max": 31,
+                    "default": 7,
+                    "step": 2,
+                    "label": "Local Max Window",
+                },
+                "max_points": {
+                    "type": "slider",
+                    "min": 0,
+                    "max": 1000,
+                    "default": 300,
+                    "step": 50,
+                    "label": "Max Points (0=all)",
+                },
+                "circle_radius": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 10,
+                    "default": 3,
+                    "step": 1,
+                    "label": "Circle Radius",
+                },
+                "circle_thickness": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 5,
+                    "default": 1,
+                    "step": 1,
+                    "label": "Circle Thickness",
+                },
+            },
+
+            "harris_corner": {
+                # Percentile threshold is far more usable than a raw huge-number threshold.
+                # It selects top responses from R=det(H)-trace(H)^2.
+                "threshold_r": {
+                    "type": "double",
+                    "min": 0.0,
+                    "max": 1000000000.0,
+                    "default": 0.0,
+                    "step": 1000.0,
+                    "label": "Threshold R (0=auto)",
+                    "decimals": 2,
+                },
+                "gaussian_ksize": {
+                    "type": "slider",
+                    "min": 3,
+                    "max": 31,
+                    "default": 5,
+                    "step": 2,
+                    "label": "Gaussian Kernel",
+                },
+                "gaussian_sigma": {
+                    "type": "double",
+                    "min": 0.1,
+                    "max": 10.0,
+                    "default": 1.0,
+                    "step": 0.1,
+                    "label": "Gaussian Sigma",
+                    "decimals": 2,
+                },
+                "nms_window": {
+                    "type": "slider",
+                    "min": 3,
+                    "max": 31,
+                    "default": 7,
+                    "step": 2,
+                    "label": "Local Max Window",
+                },
+                "max_points": {
+                    "type": "slider",
+                    "min": 0,
+                    "max": 1000,
+                    "default": 300,
+                    "step": 50,
+                    "label": "Max Points (0=all)",
+                },
+                "circle_radius": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 10,
+                    "default": 3,
+                    "step": 1,
+                    "label": "Circle Radius",
+                },
+                "circle_thickness": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 5,
+                    "default": 1,
+                    "step": 1,
+                    "label": "Circle Thickness",
+                },
+            },
         }
 
         return configs.get(filter_key, {})
@@ -804,13 +980,23 @@ class ControlPanel(QWidget):
         if not hasattr(self, "params_layout"):
             return
 
-        container = QHBoxLayout()
-        container.setSpacing(6)
+        # Use a row widget so layouts can properly calculate size hints.
+        # This prevents the left panel from "breaking" when params count grows.
+        row = QWidget()
+        grid = QGridLayout(row)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(0)
+        grid.setColumnStretch(1, 1)  # control expands
 
-        # Label
+        # Label (wraps if needed)
         label = QLabel(config["label"] + ":")
-        label.setFixedWidth(70)
-        container.addWidget(label)
+        label.setWordWrap(True)
+        label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+        # Keep label flexible but readable; it can wrap on narrow widths.
+        from PySide6.QtWidgets import QSizePolicy
+        label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        grid.addWidget(label, 0, 0)
 
         if config["type"] == "slider":
             # Slider + Value Label
@@ -821,8 +1007,13 @@ class ControlPanel(QWidget):
             slider.setSingleStep(config.get("step", 1))
             slider.setMinimumHeight(20)
 
+            slider.setSizePolicy(
+                slider.sizePolicy().horizontalPolicy(),
+                slider.sizePolicy().verticalPolicy(),
+            )
+
             value_label = QLabel(str(config["default"]))
-            value_label.setFixedWidth(38)
+            value_label.setMinimumWidth(44)
             value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
             # ✅ Lambda برای update label
@@ -831,8 +1022,8 @@ class ControlPanel(QWidget):
             # ✅ اتصال به on_params_changed
             slider.valueChanged.connect(self.on_params_changed)
 
-            container.addWidget(slider)
-            container.addWidget(value_label)
+            grid.addWidget(slider, 0, 1)
+            grid.addWidget(value_label, 0, 2)
 
             self.param_widgets[param_name] = slider
 
@@ -843,16 +1034,16 @@ class ControlPanel(QWidget):
             spinbox.setValue(config["default"])
             spinbox.setSingleStep(config.get("step", 0.1))
             spinbox.setMinimumHeight(28)
-            spinbox.setDecimals(1)
+            spinbox.setDecimals(config.get("decimals", 3))
 
             # ✅ اتصال به on_params_changed
             spinbox.valueChanged.connect(self.on_params_changed)
 
-            container.addWidget(spinbox)
+            grid.addWidget(spinbox, 0, 1, 1, 2)
 
             self.param_widgets[param_name] = spinbox
 
-        self.params_layout.addLayout(container)
+        self.params_layout.addWidget(row)
 
     def get_current_params(self):
         """دریافت پارامترهای فعلی"""

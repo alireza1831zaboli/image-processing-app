@@ -53,6 +53,7 @@ class MainWindow(QMainWindow):
         self.original_image = None
         self.current_image = None
         self.processing_thread = None
+        self._retired_threads = []  # threads we stopped but are still finishing
         self.current_filter_name = Translations.get(
             "filter_original", self.current_lang
         )
@@ -662,6 +663,14 @@ class MainWindow(QMainWindow):
                     "Error saving image!",
                 )
 
+    def _cleanup_thread(self, thread):
+        """Cleanup a finished/cancelled worker thread safely."""
+        try:
+            if thread in self._retired_threads:
+                self._retired_threads.remove(thread)
+        finally:
+            thread.deleteLater()
+
     def apply_filter(self, filter_name: str, params: dict):
         """اعمال فیلتر"""
         if self.original_image is None:
@@ -679,16 +688,21 @@ class MainWindow(QMainWindow):
 
         display_name = Translations.get_filter_name(filter_name, self.current_lang)
         self.log(f"Applying filter: {display_name}...", "info")
-
+        # Cancel previous processing safely (avoid terminate(), which can crash / leak)
         if self.processing_thread and self.processing_thread.isRunning():
-            self.processing_thread.terminate()
-            self.processing_thread.wait()
+            old = self.processing_thread
+            old.stop()  # prevents emitting finished/error in our ProcessingThread.run()
+
+            # Keep a reference until the thread naturally exits, then clean it up.
+            self._retired_threads.append(old)
+            old.finished.connect(lambda: self._cleanup_thread(old))
+            old.error.connect(lambda *_: self._cleanup_thread(old))
 
         self.processing_thread = ProcessingThread(
             self.original_image, filter_name, params
         )
 
-        self.processing_thread.finished.connect(self.on_processing_finished)
+        self.processing_thread.result.connect(self.on_processing_finished)
         self.processing_thread.error.connect(self.on_processing_error)
         self.processing_thread.start()
 
