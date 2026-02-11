@@ -23,6 +23,8 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QDoubleValidator
 import numpy as np
 import config
+from settings_manager import get_settings
+from translations import Translations
 
 
 class CustomKernelDialog(QDialog):
@@ -32,7 +34,10 @@ class CustomKernelDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("🎨 Custom Convolution Kernel Designer")
+        self.settings = get_settings()
+        self.current_lang = self.settings.get("language", "fa")
+        self.setWindowTitle(Translations.get("kernel_designer_title", self.current_lang))
+        self.setLayoutDirection(Qt.RightToLeft if self.current_lang == "fa" else Qt.LeftToRight)
         self.setModal(True)
         self.setMinimumSize(650, 700)
 
@@ -52,7 +57,7 @@ class CustomKernelDialog(QDialog):
         layout.setContentsMargins(16, 16, 16, 16)
 
         # عنوان
-        title = QLabel("🎨 Custom Kernel Designer")
+        title = QLabel(Translations.get("kernel_designer_title", self.current_lang))
         title.setStyleSheet(
             f"""
             QLabel {{
@@ -72,7 +77,7 @@ class CustomKernelDialog(QDialog):
         settings_col = QVBoxLayout()
 
         # انتخاب سایز
-        size_group = QGroupBox("📐 Kernel Size")
+        size_group = QGroupBox("📐 " + Translations.get("kernel_size", self.current_lang))
         size_layout = QHBoxLayout()
 
         size_label = QLabel("Size:")
@@ -142,7 +147,7 @@ class CustomKernelDialog(QDialog):
         top_layout.addLayout(settings_col, stretch=1)
 
         # ========== ستون راست: ماشین‌حساب ==========
-        calc_group = QGroupBox("🧮 Calculator")
+        calc_group = QGroupBox("🧮 " + Translations.get("calculator", self.current_lang))
         calc_layout = QVBoxLayout()
         calc_layout.setSpacing(6)
 
@@ -245,11 +250,11 @@ class CustomKernelDialog(QDialog):
         # ========== Options ==========
         options_layout = QHBoxLayout()
 
-        self.normalize_check = QCheckBox("Normalize Output")
+        self.normalize_check = QCheckBox(Translations.get("normalize_output", self.current_lang))
         self.normalize_check.setChecked(False)
         self.normalize_check.setToolTip("Normalize result to 0-255 range")
 
-        self.auto_sum_check = QCheckBox("Auto-normalize Kernel (Σ=1)")
+        self.auto_sum_check = QCheckBox(Translations.get("auto_normalize", self.current_lang))
         self.auto_sum_check.setChecked(False)
         self.auto_sum_check.setToolTip(
             "Divide all values by sum (useful for blur kernels)"

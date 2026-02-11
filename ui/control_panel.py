@@ -225,7 +225,7 @@ class ControlPanel(QWidget):
 
         # ✅ Toggle برای Auto-Apply
         auto_layout = QHBoxLayout()
-        self.auto_apply_check = QCheckBox("Auto-Apply on Change")
+        self.auto_apply_check = QCheckBox(Translations.get("auto_apply", self.current_lang))
         self.auto_apply_check.setChecked(True)
         self.auto_apply_check.setToolTip(
             "When enabled, filter applies automatically.\n"
@@ -239,7 +239,7 @@ class ControlPanel(QWidget):
         layout.addLayout(auto_layout)
 
         # ✅ دکمه Apply
-        self.apply_btn = QPushButton("✅ Apply Filter")
+        self.apply_btn = QPushButton("✅ " + Translations.get("apply_filter_btn", self.current_lang))
         self.apply_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.apply_btn.setEnabled(False)
         self.apply_btn.clicked.connect(self.on_apply_clicked)
@@ -374,7 +374,7 @@ class ControlPanel(QWidget):
         self.params_layout.setContentsMargins(0, 0, 0, 0)
 
         # پیغام پیشفرض
-        self.no_params_label = QLabel("ℹ️ No parameters needed")
+        self.no_params_label = QLabel("ℹ️ " + Translations.get("no_params", self.current_lang))
         self.no_params_label.setAlignment(Qt.AlignCenter)
         self.no_params_label.setStyleSheet(
             f"""
@@ -400,7 +400,7 @@ class ControlPanel(QWidget):
         layout = QGridLayout()
         layout.setSpacing(6)
 
-        self.load_btn = QPushButton("📁 Load")
+        self.load_btn = QPushButton("📂 " + Translations.get("load_image", self.current_lang))
         self.load_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.load_btn.clicked.connect(self.load_clicked.emit)
 
@@ -437,7 +437,7 @@ class ControlPanel(QWidget):
         self.zoom_reset_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.zoom_reset_btn.clicked.connect(self.zoom_reset_clicked.emit)
 
-        self.reset_btn = QPushButton("↺ Reset All")
+        self.reset_btn = QPushButton("↺ " + Translations.get("reset_all", self.current_lang))
         self.reset_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.reset_btn.clicked.connect(self.reset_clicked.emit)
 
@@ -612,7 +612,7 @@ class ControlPanel(QWidget):
 
         if not params_config:
             # اگر پارامتری نداشت
-            self.no_params_label = QLabel("ℹ️ No parameters needed")
+            self.no_params_label = QLabel("ℹ️ " + Translations.get("no_params", self.current_lang))
             self.no_params_label.setAlignment(Qt.AlignCenter)
             self.no_params_label.setStyleSheet(
                 f"""
@@ -1183,6 +1183,11 @@ class ControlPanel(QWidget):
             self.reset_btn.setText("🔄 " + Translations.get("reset", self.current_lang))
         if hasattr(self, "settings_btn"):
             self.settings_btn.setText("⚙️ " + Translations.get("settings_title", self.current_lang))
+
+        if hasattr(self, "auto_apply_check"):
+            self.auto_apply_check.setText(Translations.get("auto_apply", self.current_lang))
+        if hasattr(self, "apply_btn"):
+            self.apply_btn.setText("✅ " + Translations.get("apply_filter_btn", self.current_lang))
 
         # Hint
         if hasattr(self, "hint_label"):

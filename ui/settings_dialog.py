@@ -43,6 +43,7 @@ class SettingsDialog(QDialog):
 
         self._building = False
         self._controls = {}
+        self._last_theme = self.settings.get("theme", "dark")
 
         self.setup_ui()
         self.load_current_settings()
@@ -211,6 +212,7 @@ class SettingsDialog(QDialog):
             return
 
         new_settings = self._collect_settings()
+        theme_changed = new_settings.get("theme") != self._last_theme
 
         # ذخیره و انتشار تغییرات
         self.settings.update(new_settings)
@@ -222,6 +224,18 @@ class SettingsDialog(QDialog):
             self._refresh_texts()
 
         self.settings_changed.emit(new_settings)
+
+        # اگر تم عوض شد، بعد از اعمال تم در MainWindow (slot مستقیم)،
+        # استایل همین دیالوگ را هم دوباره اعمال می‌کنیم تا همه بخش‌ها همان لحظه عوض شوند.
+        if theme_changed:
+            self._last_theme = new_settings.get("theme")
+            self.apply_styles()
+            try:
+                self.style().unpolish(self)
+                self.style().polish(self)
+            except Exception:
+                pass
+            self.update()
 
     def _refresh_texts(self):
         # عنوان

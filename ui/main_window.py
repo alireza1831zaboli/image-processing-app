@@ -46,6 +46,19 @@ class MainWindow(QMainWindow):
 
         # عنوان پنجره
         self.setWindowTitle(Translations.get("app_title", self.current_lang))
+        # Tab titles
+        if hasattr(self, 'view_tabs'):
+            self.view_tabs.setTabText(0, Translations.get('image_view', self.current_lang))
+            self.view_tabs.setTabText(1, Translations.get('histogram_view', self.current_lang))
+
+        # Viewer group titles
+        if hasattr(self, 'original_group'):
+            self.original_group.setTitle(Translations.get('original_image', self.current_lang))
+        if hasattr(self, 'processed_group'):
+            self.processed_group.setTitle(Translations.get('processed_image', self.current_lang))
+
+        # Console title
+        self.update_console_title()
 
         # عناوین گروه‌ها
         if hasattr(self, "original_group"):
@@ -80,6 +93,10 @@ class MainWindow(QMainWindow):
             "filter_original", self.current_lang
         )
         self.current_filename = ""
+
+        # Console log entries (so we can re-render them on theme change)
+        # Each entry: (timestamp_str, level, message)
+        self._log_entries = []
 
         self.syncing = False
         self.syncing_histograms = False
@@ -148,8 +165,8 @@ class MainWindow(QMainWindow):
         content_layout.addWidget(self.view_tabs, stretch=1)
         main_layout.addLayout(content_layout)
 
-        console_group = QGroupBox("📋 Console / Processing Log")
-        console_group.setMaximumHeight(config.CONSOLE_HEIGHT)
+        self.console_group = QGroupBox(Translations.get("console_title", self.current_lang))
+        self.console_group.setMaximumHeight(config.CONSOLE_HEIGHT)
         console_layout = QVBoxLayout()
         console_layout.setContentsMargins(
             config.Layout.PADDING_SMALL,
@@ -161,29 +178,16 @@ class MainWindow(QMainWindow):
         self.console_text = QTextEdit()
         self.console_text.setReadOnly(True)
         self.console_text.setMaximumHeight(config.CONSOLE_HEIGHT - 20)
-        self.console_text.setStyleSheet(
-            f"""
-            QTextEdit {{
-                background-color: {config.Colors.PANEL};
-                color: {config.Colors.TEXT};
-                border: 1px solid {config.Colors.BORDER};
-                border-radius: 5px;
-                padding: 8px;
-                font-family: 'Consolas', 'Courier New', monospace;
-                font-size: 11px;
-                line-height: 1.4;
-            }}
-        """
-        )
+        self.update_console_styles()
 
         # پیام خوش‌آمدگویی
         self.log("Application started successfully", "success")
         self.log("Ready to process images", "info")
 
         console_layout.addWidget(self.console_text)
-        console_group.setLayout(console_layout)
+        self.console_group.setLayout(console_layout)
 
-        main_layout.addWidget(console_group)
+        main_layout.addWidget(self.console_group)
 
         # نوار وضعیت
         self.create_status_bar()
@@ -394,17 +398,90 @@ class MainWindow(QMainWindow):
             self.dimensions_input_label.setText(Translations.get("status_input", self.current_lang) + ": -")
             self.dimensions_output_label.setText(Translations.get("status_output", self.current_lang) + ": -")
 
+        self.update_console_title()
+
         # پنل کنترل
         if hasattr(self.control_panel, "set_language"):
             self.control_panel.set_language(self.current_lang)
 
         # هرجا متن ثابت داریم بهتره اینجا به‌روزرسانی شود (در صورت نیاز)
 
+    def update_console_styles(self):
+        """استایل کنسول را بر اساس تم فعال بازاعمال می‌کند"""
+        self.console_text.setStyleSheet(
+            f"""
+            QTextEdit {{
+                background-color: {config.Colors.WIDGET};
+                color: {config.Colors.TEXT};
+                border: 1px solid {config.Colors.BORDER};
+                border-radius: 6px;
+                padding: 8px;
+                font-family: 'Consolas', 'Courier New', monospace;
+                font-size: 11px;
+            }}
+            QTextEdit:focus {{
+                border-color: {config.Colors.PRIMARY};
+            }}
+            QTextEdit::selection {{
+                background-color: {config.Colors.PRIMARY};
+                color: white;
+            }}
+            """
+        )
+
+    def _format_log_html(self, timestamp: str, message: str, level: str) -> str:
+        """ساخت HTML لاگ بر اساس تم فعلی (تا با تعویض تم قابل رندر مجدد باشد)."""
+        if level == "info":
+            icon = "ℹ️"
+            color = config.Colors.PRIMARY
+        elif level == "success":
+            icon = "✅"
+            color = config.Colors.SUCCESS
+        elif level == "error":
+            icon = "❌"
+            color = config.Colors.ERROR
+        elif level == "warning":
+            icon = "⚠️"
+            color = config.Colors.WARNING
+        elif level == "processing":
+            icon = "⏳"
+            color = config.Colors.INFO
+        else:
+            icon = "📝"
+            color = config.Colors.TEXT
+
+        return (
+            f'<span style="color: {config.Colors.TEXT_SECONDARY};">[{timestamp}]</span> '
+            f'<span style="color: {color}; font-weight: 600;">{icon}</span> '
+            f'<span style="color: {config.Colors.TEXT};">{message}</span>'
+        )
+
+    def rebuild_console(self):
+        """با تغییر تم، لاگ‌ها را دوباره با رنگ‌های جدید رندر می‌کند."""
+        if not hasattr(self, "console_text"):
+            return
+        self.console_text.blockSignals(True)
+        try:
+            self.console_text.clear()
+            for ts, lvl, msg in self._log_entries:
+                self.console_text.append(self._format_log_html(ts, msg, lvl))
+        finally:
+            self.console_text.blockSignals(False)
+
+    def update_console_title(self):
+        """عنوان گروه کنسول را با زبان فعلی هماهنگ می‌کند"""
+        if hasattr(self, "console_group"):
+            self.console_group.setTitle(Translations.get("console_title", self.current_lang))
+
     def refresh_dynamic_styles(self):
-        """بازاعمال استایل ویجت‌هایی که استایل داخلی دارند (مثل StatusFrame)"""
-        # بازسازی استایل status bar container
+        """بازاعمال استایل ویجت‌هایی که استایل داخلی دارند"""
         if hasattr(self, "status_frame"):
             self.update_status_bar_styles()
+        if hasattr(self, "console_text"):
+            self.update_console_styles()
+            # important: existing log lines were rendered with the previous theme colors
+            self.rebuild_console()
+        self.update_console_title()
 
     # ========== Status Bar ==========
 
@@ -908,32 +985,16 @@ class MainWindow(QMainWindow):
 
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
 
-        if level == "info":
-            icon = "ℹ️"
-            color = config.Colors.PRIMARY
-        elif level == "success":
-            icon = "✅"
-            color = config.Colors.SUCCESS
-        elif level == "error":
-            icon = "❌"
-            color = config.Colors.ERROR
-        elif level == "warning":
-            icon = "⚠️"
-            color = "#FFA500"
-        elif level == "processing":
-            icon = "⏳"
-            color = "#00BFFF"
-        else:
-            icon = "📝"
-            color = config.Colors.TEXT
+        # keep entries so we can re-render them when theme changes
+        try:
+            self._log_entries.append((timestamp, level, message))
+            # optional cap to avoid infinite growth
+            if len(self._log_entries) > 5000:
+                self._log_entries = self._log_entries[-3000:]
+        except Exception:
+            pass
 
-        formatted_msg = (
-            f'<span style="color: {config.Colors.TEXT_SECONDARY};">[{timestamp}]</span> '
-            f'<span style="color: {color}; font-weight: 600;">{icon}</span> '
-            f'<span style="color: {config.Colors.TEXT};">{message}</span>'
-        )
-
-        self.console_text.append(formatted_msg)
+        self.console_text.append(self._format_log_html(timestamp, message, level))
 
         # cursor = self.console_text.textCursor()
         # cursor.movePosition(QTextCursor.MoveOperation.End)
