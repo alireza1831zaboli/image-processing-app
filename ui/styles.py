@@ -34,7 +34,7 @@ def get_main_stylesheet() -> str:
     }}
     
     QPushButton:hover {{
-        background-color: {config.Colors.PRIMARY_LIGHT};
+        background-color: {config.Colors.PRIMARY_HOVER};
     }}
     
     QPushButton:pressed {{
@@ -241,3 +241,36 @@ def get_main_stylesheet() -> str:
         font-size: {config.Fonts.SIZE_SMALL}px;
     }}
     """
+
+
+from PySide6.QtGui import QPalette, QColor
+from PySide6.QtWidgets import QApplication
+
+
+def build_qt_palette() -> QPalette:
+    """ساخت QPalette مطابق رنگ‌های فعال config.Colors"""
+    palette = QPalette()
+    palette.setColor(QPalette.Window, QColor(config.Colors.BACKGROUND))
+    palette.setColor(QPalette.WindowText, QColor(config.Colors.TEXT))
+    palette.setColor(QPalette.Base, QColor(config.Colors.PANEL))
+    palette.setColor(QPalette.AlternateBase, QColor(config.Colors.WIDGET))
+    palette.setColor(QPalette.Text, QColor(config.Colors.TEXT))
+    palette.setColor(QPalette.Button, QColor(config.Colors.PANEL))
+    palette.setColor(QPalette.ButtonText, QColor(config.Colors.TEXT))
+    palette.setColor(QPalette.Highlight, QColor(config.Colors.PRIMARY))
+    palette.setColor(QPalette.HighlightedText, QColor(config.Colors.TEXT))
+    return palette
+
+
+def apply_app_theme(theme: str) -> None:
+    """اعمال تم در سطح کل برنامه (رنگ‌ها + پالت + استایل‌شیت)"""
+    # 1) update config colors
+    config.set_theme(theme)
+
+    # 2) apply palette + stylesheet globally
+    app = QApplication.instance()
+    if app is None:
+        return
+
+    app.setPalette(build_qt_palette())
+    app.setStyleSheet(get_main_stylesheet())

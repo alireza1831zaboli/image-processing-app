@@ -42,45 +42,119 @@ PAN_CURSOR_CLOSED = "closedhand"
 
 
 # =============== پالت رنگی ===============
-class Colors:
-    """رنگهای برنامه - تم Teal مدرن"""
 
-    # پسزمینه
-    BACKGROUND = "#1a1e23"
-    PANEL = "#22272e"
-    WIDGET = "#2d333b"
-    BORDER = "#444c56"
+# پالت‌های آماده (Dark/Light) برای حفظ زیبایی در هر دو حالت
+_PALETTE_DARK = {
+    # Backgrounds
+    "BACKGROUND": "#1a1e23",
+    "PANEL": "#22272e",
+    "WIDGET": "#2d333b",
+    "BORDER": "#444c56",
 
-    # اصلی - Teal/Cyan
-    PRIMARY = "#0d7377"
-    PRIMARY_LIGHT = "#14a085"
-    PRIMARY_DARK = "#0a5f62"
-    PRIMARY_HOVER = "#0078D4"
+    # Accent (Teal/Cyan)
+    "PRIMARY": "#0f6f73",
+    "PRIMARY_LIGHT": "#148489",
+    "PRIMARY_DARK": "#0b5b5e",
+    "PRIMARY_HOVER": "#0078D4",
 
-    # متن
-    TEXT = "#e6edf3"
-    TEXT_SECONDARY = "#9198a1"
-    TEXT_MUTED = "#656d76"
+    # Text
+    "TEXT": "#e6edf3",
+    "TEXT_SECONDARY": "#9198a1",
+    "TEXT_MUTED": "#656d76",
 
-    # وضعیت
-    SUCCESS = "#3fb950"
-    WARNING = "#d29922"
-    ERROR = "#ff5555"
-    INFO = "#58a6ff"
+    # Status
+    "SUCCESS": "#3fb950",
+    "WARNING": "#d29922",
+    "ERROR": "#ff5555",
+    "INFO": "#58a6ff",
 
-    # ویوئر تصویر
-    IMAGE_VIEWER_BG = "#1a1e23"
-    IMAGE_VIEWER_BORDER = "#444c56"
+    # Image viewer
+    "IMAGE_VIEWER_BG": "#1a1e23",
+    "IMAGE_VIEWER_BORDER": "#444c56",
 
     # Hover
-    HOVER = "#373e47"
+    "HOVER": "#373e47",
+}
+
+_PALETTE_LIGHT = {
+    # Backgrounds
+    "BACKGROUND": "#f1f3f5",
+    "PANEL": "#ffffff",
+    "WIDGET": "#f3f4f6",
+    "BORDER": "#d0d7de",
+
+    # Accent (Teal/Cyan) – هماهنگ با تم تیره
+    "PRIMARY": "#0f6f73",
+    "PRIMARY_LIGHT": "#148489",
+    "PRIMARY_DARK": "#0b5b5e",
+    "PRIMARY_HOVER": "#116a6e",
+
+    # Text
+    "TEXT": "#24292f",
+    "TEXT_SECONDARY": "#57606a",
+    "TEXT_MUTED": "#6e7781",
+
+    # Status
+    "SUCCESS": "#1a7f37",
+    "WARNING": "#9a6700",
+    "ERROR": "#cf222e",
+    "INFO": "#0969da",
+
+    # Image viewer
+    "IMAGE_VIEWER_BG": "#f6f8fa",
+    "IMAGE_VIEWER_BORDER": "#d0d7de",
+
+    # Hover
+    "HOVER": "#eaeef2",
+}
+
+
+class Colors:
+    """رنگ‌های فعال برنامه (با امکان سوئیچ تم در لحظه)"""
+
+    # مقدار پیش‌فرض
+    BACKGROUND = _PALETTE_DARK["BACKGROUND"]
+    PANEL = _PALETTE_DARK["PANEL"]
+    WIDGET = _PALETTE_DARK["WIDGET"]
+    BORDER = _PALETTE_DARK["BORDER"]
+
+    PRIMARY = _PALETTE_DARK["PRIMARY"]
+    PRIMARY_LIGHT = _PALETTE_DARK["PRIMARY_LIGHT"]
+    PRIMARY_DARK = _PALETTE_DARK["PRIMARY_DARK"]
+    PRIMARY_HOVER = _PALETTE_DARK["PRIMARY_HOVER"]
+
+    TEXT = _PALETTE_DARK["TEXT"]
+    TEXT_SECONDARY = _PALETTE_DARK["TEXT_SECONDARY"]
+    TEXT_MUTED = _PALETTE_DARK["TEXT_MUTED"]
+
+    SUCCESS = _PALETTE_DARK["SUCCESS"]
+    WARNING = _PALETTE_DARK["WARNING"]
+    ERROR = _PALETTE_DARK["ERROR"]
+    INFO = _PALETTE_DARK["INFO"]
+
+    IMAGE_VIEWER_BG = _PALETTE_DARK["IMAGE_VIEWER_BG"]
+    IMAGE_VIEWER_BORDER = _PALETTE_DARK["IMAGE_VIEWER_BORDER"]
+
+    HOVER = _PALETTE_DARK["HOVER"]
+
+
+def set_theme(theme: str) -> str:
+    """اعمال تم (dark/light) روی رنگ‌های config در لحظه"""
+    theme = (theme or "dark").lower()
+    palette = _PALETTE_LIGHT if theme == "light" else _PALETTE_DARK
+
+    for k, v in palette.items():
+        setattr(Colors, k, v)
+
+    return "light" if theme == "light" else "dark"
 
 
 # =============== تنظیمات استایل ===============
+
 class Fonts:
     """فونتهای برنامه - متعادل"""
 
-    FAMILY = "'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif"
+    FAMILY = "Segoe UI, Inter, Arial"
     SIZE_BASE = 11
     SIZE_SMALL = 10
     SIZE_HEADER = 12

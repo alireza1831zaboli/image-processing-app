@@ -4,6 +4,7 @@ Image Manager - با فیلترهای کانوولوشنی
 """
 
 import cv2
+import os
 import numpy as np
 from typing import Optional
 from pathlib import Path
@@ -47,11 +48,25 @@ class ImageManager:
             return None
 
     @staticmethod
-    def save_image(file_path: str, image: np.ndarray) -> bool:
-        """ذخیره تصویر در فایل"""
+    def save_image(file_path: str, image: np.ndarray, quality: int = 90) -> bool:
+        """ذخیره تصویر در فایل (با پشتیبانی کیفیت برای JPEG/WEBP)"""
         try:
-            success = cv2.imwrite(file_path, image)
-            return success
+            ext = os.path.splitext(file_path)[1].lower()
+
+            params = []
+            # OpenCV quality params
+            if ext in [".jpg", ".jpeg"]:
+                params = [int(cv2.IMWRITE_JPEG_QUALITY), int(max(0, min(100, quality)))]
+            elif ext == ".webp":
+                params = [int(cv2.IMWRITE_WEBP_QUALITY), int(max(0, min(100, quality)))]
+            elif ext == ".png":
+                # quality 0..100 -> compression 0..9 (inverse)
+                comp = int(round(9 - (max(0, min(100, quality)) / 100.0) * 9))
+                comp = max(0, min(9, comp))
+                params = [int(cv2.IMWRITE_PNG_COMPRESSION), comp]
+
+            success = cv2.imwrite(file_path, image, params) if params else cv2.imwrite(file_path, image)
+            return bool(success)
         except Exception as e:
             print(f"Error saving image: {e}")
             return False

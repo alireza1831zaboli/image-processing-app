@@ -17,25 +17,19 @@ class SettingsManager:
 
     # تنظیمات پیشفرض
     DEFAULT_SETTINGS = {
-        # ظاهری
+        # ظاهر
         "language": "fa",  # fa یا en
-        "theme": "dark",  # dark, light, auto
-        "show_grid": False,
-        "grid_size": 16,  # 8, 16, 32
-        # عملکرد
+        "theme": "dark",  # dark یا light
+
+        # تجربه کاربری
         "zoom_speed": "normal",  # slow, normal, fast
-        "auto_save": False,
-        "auto_save_interval": 10,  # دقیقه
-        "history_size": 10,  # تعداد undo/redo
+        "show_hints": True,
+        "confirm_exit": True,
+
         # فایل‌ها
         "save_quality": "high",  # low, medium, high, maximum
         "default_format": "PNG",  # PNG, JPEG, BMP
-        "last_directory": "",  # آخرین مسیر باز شده
-        # پیشرفته
-        "show_hints": True,
-        "confirm_exit": True,
-        "canvas_size": "normal",  # small, normal, large
-        "antialiasing": True,
+        "last_directory": "",  # آخرین مسیر باز/ذخیره
     }
 
     def __init__(self):
@@ -99,12 +93,6 @@ class SettingsManager:
         quality = self.get("save_quality", "high")
         values = {"low": 50, "medium": 75, "high": 90, "maximum": 100}
         return values.get(quality, 90)
-
-    def get_canvas_size(self) -> tuple:
-        """دریافت سایز canvas هیستوگرام"""
-        size = self.get("canvas_size", "normal")
-        sizes = {"small": (800, 400), "normal": (1000, 500), "large": (1200, 600)}
-        return sizes.get(size, (1000, 500))
 
     def is_rtl(self) -> bool:
         """آیا زبان راست‌به‌چپ است؟"""

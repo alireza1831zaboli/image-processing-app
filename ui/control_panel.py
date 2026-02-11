@@ -63,6 +63,8 @@ class ControlPanel(QWidget):
         self.auto_apply = True
 
         self.setup_ui()
+        if USE_TRANSLATIONS:
+            self.set_show_hints(self.settings.get("show_hints", True))
 
     def setup_ui(self):
         main_layout = QVBoxLayout(self)
@@ -123,16 +125,16 @@ class ControlPanel(QWidget):
         scroll_layout.addWidget(self.params_group)
 
         # ✅ Apply + Toggle
-        apply_group = self.create_apply_group()
-        scroll_layout.addWidget(apply_group)
+        self.apply_group = self.create_apply_group()
+        scroll_layout.addWidget(self.apply_group)
 
         # عملیات
-        operations_group = self.create_operations_group()
-        scroll_layout.addWidget(operations_group)
+        self.operations_group = self.create_operations_group()
+        scroll_layout.addWidget(self.operations_group)
 
         # Zoom
-        zoom_group = self.create_zoom_group()
-        scroll_layout.addWidget(zoom_group)
+        self.zoom_group = self.create_zoom_group()
+        scroll_layout.addWidget(self.zoom_group)
 
         scroll_layout.addStretch(1)
 
@@ -140,8 +142,8 @@ class ControlPanel(QWidget):
         main_layout.addWidget(scroll, 1)
 
         # راهنما
-        hint = QLabel("💡 Mouse Wheel: Zoom")
-        hint.setStyleSheet(
+        self.hint_label = QLabel("💡 " + Translations.get("hint_default", self.current_lang))
+        self.hint_label.setStyleSheet(
             f"""
             QLabel {{
                 color: {config.Colors.TEXT_MUTED};
@@ -150,11 +152,74 @@ class ControlPanel(QWidget):
             }}
         """
         )
-        main_layout.addWidget(hint)
+        main_layout.addWidget(self.hint_label)
+
+        # Hint system (contextual)
+        self._hint_registry = {}
+        self._install_hints()
+
+    def _install_hints(self):
+        """Register contextual hints for key controls."""
+        if not USE_TRANSLATIONS:
+            return
+        # Groups / controls
+        try:
+            self._register_hint(self.category_combo, "hint_filters")
+            self._register_hint(self.filter_combo, "hint_filters")
+        except Exception:
+            pass
+        # Parameters area (scroll)
+        try:
+            self._register_hint(self.params_container, "hint_params")
+        except Exception:
+            pass
+        # Apply
+        try:
+            self._register_hint(self.apply_btn, "hint_apply")
+            self._register_hint(self.auto_apply_cb, "hint_auto_apply")
+        except Exception:
+            pass
+        # Operations
+        try:
+            self._register_hint(self.load_btn, "hint_load")
+            self._register_hint(self.save_btn, "hint_save")
+            self._register_hint(self.settings_btn, "hint_settings")
+        except Exception:
+            pass
+        # Zoom
+        try:
+            self._register_hint(self.zoom_in_btn, "hint_zoom_in")
+            self._register_hint(self.zoom_out_btn, "hint_zoom_out")
+            self._register_hint(self.reset_zoom_btn, "hint_reset_zoom")
+            self._register_hint(self.reset_all_btn, "hint_reset_all")
+        except Exception:
+            pass
+
+    def _register_hint(self, widget, key: str):
+        """Attach tooltip + connect hover/focus to bottom hint label."""
+        if widget is None:
+            return
+        self._hint_registry[widget] = key
+        widget.setToolTip(Translations.get(key, self.current_lang))
+        widget.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if self.settings.get("show_hints", True) and hasattr(self, "hint_label"):
+            try:
+                from PySide6.QtCore import QEvent
+                if event.type() in (QEvent.Enter, QEvent.FocusIn, QEvent.MouseButtonPress):
+                    if obj in self._hint_registry:
+                        self.hint_label.setText("💡 " + obj.toolTip())
+                elif event.type() in (QEvent.Leave, QEvent.FocusOut):
+                    # revert to default hint
+                    self.hint_label.setText("💡 " + Translations.get("hint_default", self.current_lang))
+            except Exception:
+                pass
+        return super().eventFilter(obj, event)
 
     def create_apply_group(self):
         """گروه Apply و Auto-Apply"""
-        group = QGroupBox("🎯 Apply Filter")
+        group = QGroupBox("🎯 " + Translations.get("apply_group", self.current_lang))
         layout = QVBoxLayout()
         layout.setSpacing(6)
 
@@ -241,7 +306,7 @@ class ControlPanel(QWidget):
 
     def create_filter_group(self):
         """گروه فیلتر"""
-        group = QGroupBox("🎨 Filters")
+        group = QGroupBox("🎨 " + Translations.get("filters_group", self.current_lang))
         layout = QVBoxLayout()
         layout.setSpacing(6)
 
@@ -300,7 +365,7 @@ class ControlPanel(QWidget):
 
     def create_params_group(self):
         """گروه پارامترها - داینامیک"""
-        group = QGroupBox("⚙️ Parameters")
+        group = QGroupBox("⚙️ " + Translations.get("params_group", self.current_lang))
 
         # Layout اصلی که داینامیک میشه
         self.params_container = QWidget()
@@ -331,7 +396,7 @@ class ControlPanel(QWidget):
 
     def create_operations_group(self):
         """گروه عملیات"""
-        group = QGroupBox("🔧 Operations")
+        group = QGroupBox("🔧 " + Translations.get("operations_group", self.current_lang))
         layout = QGridLayout()
         layout.setSpacing(6)
 
@@ -339,11 +404,11 @@ class ControlPanel(QWidget):
         self.load_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.load_btn.clicked.connect(self.load_clicked.emit)
 
-        self.save_btn = QPushButton("💾 Save")
+        self.save_btn = QPushButton("💾 " + Translations.get("save_image", self.current_lang))
         self.save_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.save_btn.clicked.connect(self.save_clicked.emit)
 
-        self.settings_btn = QPushButton("⚙️ Settings")
+        self.settings_btn = QPushButton("⚙️ " + Translations.get("settings", self.current_lang))
         self.settings_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.settings_btn.clicked.connect(self.settings_clicked.emit)
 
@@ -356,7 +421,7 @@ class ControlPanel(QWidget):
 
     def create_zoom_group(self):
         """گروه Zoom"""
-        group = QGroupBox("🔍 Zoom")
+        group = QGroupBox("🔍 " + Translations.get("zoom_group", self.current_lang))
         layout = QGridLayout()
         layout.setSpacing(6)
 
@@ -1073,3 +1138,52 @@ class ControlPanel(QWidget):
             print(
                 f"[Params] Not applying (auto_apply={self.auto_apply}, filter={self.current_filter})"
             )
+
+
+    def set_show_hints(self, enabled: bool):
+        """نمایش/مخفی کردن راهنمای پایین پنل"""
+        if hasattr(self, "hint_label") and self.hint_label is not None:
+            self.hint_label.setVisible(bool(enabled))
+
+    def set_language(self, lang: str):
+        """اعمال زبان در لحظه برای متن‌های پنل کنترل"""
+        if not USE_TRANSLATIONS:
+            return
+        self.current_lang = lang or "fa"
+        self.setLayoutDirection(Qt.RightToLeft if self.current_lang == "fa" else Qt.LeftToRight)
+
+        # Titles
+        try:
+            self.filters_group.setTitle("🎨 " + Translations.get("filters_group", self.current_lang))
+        except Exception:
+            pass
+        try:
+            self.params_group.setTitle("🧪 " + Translations.get("params_group", self.current_lang))
+        except Exception:
+            pass
+        try:
+            self.apply_group.setTitle("🎯 " + Translations.get("apply_group", self.current_lang))
+        except Exception:
+            pass
+        try:
+            self.operations_group.setTitle("🛠️ " + Translations.get("operations_group", self.current_lang))
+        except Exception:
+            pass
+        try:
+            self.zoom_group.setTitle("🔍 " + Translations.get("zoom_group", self.current_lang))
+        except Exception:
+            pass
+
+        # Buttons (if exist)
+        if hasattr(self, "load_btn"):
+            self.load_btn.setText("📂 " + Translations.get("load_image", self.current_lang))
+        if hasattr(self, "save_btn"):
+            self.save_btn.setText("💾 " + Translations.get("save_image", self.current_lang))
+        if hasattr(self, "reset_btn"):
+            self.reset_btn.setText("🔄 " + Translations.get("reset", self.current_lang))
+        if hasattr(self, "settings_btn"):
+            self.settings_btn.setText("⚙️ " + Translations.get("settings_title", self.current_lang))
+
+        # Hint
+        if hasattr(self, "hint_label"):
+            self.hint_label.setText("💡 " + Translations.get("hint_zoom_wheel", self.current_lang))

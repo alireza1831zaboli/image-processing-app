@@ -24,7 +24,7 @@ from ui.image_viewer import ImageViewer
 from ui.synced_histogram_viewer import SyncedHistogramViewer
 from ui.control_panel import ControlPanel
 from ui.settings_dialog import SettingsDialog
-from ui.styles import get_main_stylesheet
+from ui.styles import get_main_stylesheet, apply_app_theme
 from ui.transformation_dialog import TransformationDialog
 from core.image_manager import ImageManager
 from core.processing_thread import ProcessingThread
@@ -46,6 +46,27 @@ class MainWindow(QMainWindow):
 
         # عنوان پنجره
         self.setWindowTitle(Translations.get("app_title", self.current_lang))
+
+        # عناوین گروه‌ها
+        if hasattr(self, "original_group"):
+            self.original_group.setTitle(Translations.get("original_image", self.current_lang))
+        if hasattr(self, "processed_group"):
+            self.processed_group.setTitle(Translations.get("processed_image", self.current_lang))
+        if hasattr(self, "original_hist_group"):
+            self.original_hist_group.setTitle(Translations.get("original_histogram", self.current_lang))
+        if hasattr(self, "processed_hist_group"):
+            self.processed_hist_group.setTitle(Translations.get("processed_histogram", self.current_lang))
+
+
+        # عناوین گروه‌ها
+        if hasattr(self, "original_group"):
+            self.original_group.setTitle(Translations.get("original_image", self.current_lang))
+        if hasattr(self, "processed_group"):
+            self.processed_group.setTitle(Translations.get("processed_image", self.current_lang))
+        if hasattr(self, "original_hist_group"):
+            self.original_hist_group.setTitle(Translations.get("original_histogram", self.current_lang))
+        if hasattr(self, "processed_hist_group"):
+            self.processed_hist_group.setTitle(Translations.get("processed_histogram", self.current_lang))
         self.setGeometry(100, 100, config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
         self.setMinimumSize(config.WINDOW_MIN_WIDTH, config.WINDOW_MIN_HEIGHT)
 
@@ -54,6 +75,7 @@ class MainWindow(QMainWindow):
         self.current_image = None
         self.processing_thread = None
         self._retired_threads = []  # threads we stopped but are still finishing
+        self.current_filter_key = "original"
         self.current_filter_name = Translations.get(
             "filter_original", self.current_lang
         )
@@ -63,7 +85,7 @@ class MainWindow(QMainWindow):
         self.syncing_histograms = False
 
         self.setup_ui()
-        self.setStyleSheet(get_main_stylesheet())
+        apply_app_theme(self.settings.get('theme','dark'))
         # self.control_panel.custom_kernel_clicked.connect(self.show_custom_kernel_dialog)
 
     def setup_ui(self):
@@ -173,7 +195,7 @@ class MainWindow(QMainWindow):
         viewers_layout.setSpacing(10)
 
         # تصویر اصلی
-        original_group = QGroupBox(
+        self.original_group = QGroupBox(
             Translations.get("original_image", self.current_lang)
         )
         original_layout = QVBoxLayout()
@@ -184,11 +206,11 @@ class MainWindow(QMainWindow):
         self.original_viewer.zoom_changed.connect(self.on_original_zoom_changed)
         self.original_viewer.pan_changed.connect(self.on_original_pan_changed)
         original_layout.addWidget(self.original_viewer)
-        original_group.setLayout(original_layout)
-        viewers_layout.addWidget(original_group)
+        self.original_group.setLayout(original_layout)
+        viewers_layout.addWidget(self.original_group)
 
         # تصویر پردازش شده
-        processed_group = QGroupBox(
+        self.processed_group = QGroupBox(
             Translations.get("processed_image", self.current_lang)
         )
         processed_layout = QVBoxLayout()
@@ -199,8 +221,8 @@ class MainWindow(QMainWindow):
         self.processed_viewer.zoom_changed.connect(self.on_processed_zoom_changed)
         self.processed_viewer.pan_changed.connect(self.on_processed_pan_changed)
         processed_layout.addWidget(self.processed_viewer)
-        processed_group.setLayout(processed_layout)
-        viewers_layout.addWidget(processed_group)
+        self.processed_group.setLayout(processed_layout)
+        viewers_layout.addWidget(self.processed_group)
 
         return viewers_layout
 
@@ -210,7 +232,7 @@ class MainWindow(QMainWindow):
         viewers_layout.setSpacing(10)
 
         # هیستوگرام اصلی
-        original_hist_group = QGroupBox(
+        self.original_hist_group = QGroupBox(
             Translations.get("original_histogram", self.current_lang)
         )
         original_hist_layout = QVBoxLayout()
@@ -219,11 +241,11 @@ class MainWindow(QMainWindow):
         self.original_histogram.zoom_changed.connect(self.on_original_hist_zoom_changed)
         self.original_histogram.pan_changed.connect(self.on_original_hist_pan_changed)
         original_hist_layout.addWidget(self.original_histogram)
-        original_hist_group.setLayout(original_hist_layout)
-        viewers_layout.addWidget(original_hist_group)
+        self.original_hist_group.setLayout(original_hist_layout)
+        viewers_layout.addWidget(self.original_hist_group)
 
         # هیستوگرام پردازش شده
-        processed_hist_group = QGroupBox(
+        self.processed_hist_group = QGroupBox(
             Translations.get("processed_histogram", self.current_lang)
         )
         processed_hist_layout = QVBoxLayout()
@@ -234,8 +256,8 @@ class MainWindow(QMainWindow):
         )
         self.processed_histogram.pan_changed.connect(self.on_processed_hist_pan_changed)
         processed_hist_layout.addWidget(self.processed_histogram)
-        processed_hist_group.setLayout(processed_hist_layout)
-        viewers_layout.addWidget(processed_hist_group)
+        self.processed_hist_group.setLayout(processed_hist_layout)
+        viewers_layout.addWidget(self.processed_hist_group)
 
         return viewers_layout
 
@@ -316,37 +338,223 @@ class MainWindow(QMainWindow):
     def show_settings(self):
         """نمایش پنجره تنظیمات"""
         dialog = SettingsDialog(self)
-        dialog.settings_applied.connect(self.on_settings_applied)
+        dialog.settings_changed.connect(self.on_settings_changed)
         dialog.exec()
 
-    def on_settings_applied(self, new_settings: dict):
-        """پس از اعمال تنظیمات"""
-        # اگر زبان تغییر کرد
-        if new_settings.get("language") != self.current_lang:
-            QMessageBox.information(
-                self,
-                Translations.get("msg_success", new_settings.get("language")),
-                "Please restart the application for language changes to take effect.",
-            )
-            self.current_lang = new_settings.get("language")
+    def on_settings_changed(self, new_settings: dict):
+        """اعمال لحظه‌ای تنظیمات (بدون نیاز به ری‌استارت)"""
+        # زبان
+        lang = new_settings.get("language", self.current_lang)
+        if lang != self.current_lang:
+            self.current_lang = lang
+            self.apply_language()
 
-        # اگر سرعت zoom تغییر کرد
-        # می‌تونیم config رو update کنیم
-        zoom_factor = self.settings.get_zoom_factor()
-        config.ZOOM_WHEEL_FACTOR = zoom_factor
+        # تم
+        theme = new_settings.get("theme", self.settings.get("theme", "dark"))
+        apply_app_theme(theme)
+        # استایل بعضی ویجت‌های ساخته‌شده با stylesheet داخلی را هم دوباره اعمال می‌کنیم
+        self.refresh_dynamic_styles()
+
+        # سرعت zoom
+        config.ZOOM_WHEEL_FACTOR = self.settings.get_zoom_factor()
+
+        # show hints
+        if hasattr(self.control_panel, "set_show_hints"):
+            self.control_panel.set_show_hints(self.settings.get("show_hints", True))
+
+
+    def apply_language(self):
+        """اعمال زبان در لحظه (عنوان، لیبل‌ها، جهت، پنل کنترل)"""
+        # جهت کلی پنجره
+        self.setLayoutDirection(
+            Qt.RightToLeft if self.settings.is_rtl() else Qt.LeftToRight
+        )
+
+        # عنوان
+        self.setWindowTitle(Translations.get("app_title", self.current_lang))
+
+        # برچسب‌های status
+        # فیلتر
+        self.update_filter_label(getattr(self, 'current_filter_key', 'original'))
+
+        # فایل
+        if self.current_filename:
+            self.update_filename_label(self.current_filename)
+        else:
+            self.filename_label.setText(Translations.get("status_file", self.current_lang) + ": -")
+
+        # مختصات
+        self.update_mouse_coords(-1, -1)
+
+        # ابعاد (اگر تصویر داریم)
+        if self.original_image is not None:
+            h, w = self.original_image.shape[:2]
+            self.update_dimensions_labels(w, h, w, h)
+        else:
+            self.dimensions_input_label.setText(Translations.get("status_input", self.current_lang) + ": -")
+            self.dimensions_output_label.setText(Translations.get("status_output", self.current_lang) + ": -")
+
+        # پنل کنترل
+        if hasattr(self.control_panel, "set_language"):
+            self.control_panel.set_language(self.current_lang)
+
+        # هرجا متن ثابت داریم بهتره اینجا به‌روزرسانی شود (در صورت نیاز)
+
+    def refresh_dynamic_styles(self):
+        """بازاعمال استایل ویجت‌هایی که استایل داخلی دارند (مثل StatusFrame)"""
+        # بازسازی استایل status bar container
+        if hasattr(self, "status_frame"):
+            self.update_status_bar_styles()
 
     # ========== Status Bar ==========
 
+    def _clear_layout(self, layout):
+        while layout.count():
+            item = layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+            else:
+                child = item.layout()
+                if child is not None:
+                    self._clear_layout(child)
+        
+
+    
     def create_status_bar(self):
-        """ایجاد نوار وضعیت"""
+        """ایجاد نوار وضعیت (یک‌بار)"""
+        if getattr(self, "_status_initialized", False):
+            return
+
         self.status_frame = QFrame()
         self.status_frame.setFrameShape(QFrame.StyledPanel)
+
+        self.status_layout = QHBoxLayout(self.status_frame)
+        self.status_layout.setContentsMargins(10, 5, 10, 5)
+        self.status_layout.setSpacing(15)
+
+        self._status_widgets = {}
+
+        def _vline():
+            sep = QFrame()
+            sep.setFrameShape(QFrame.VLine)
+            sep.setFixedWidth(1)
+            # در QSS برای خط عمودی بهتر است background-color استفاده شود
+            sep.setStyleSheet(f"background-color: {config.Colors.BORDER};")
+            return sep
+
+        def _chip(bg_color: str):
+            w = QWidget()
+            w.setStyleSheet(
+                f"""
+                background-color: {bg_color};
+                border-radius: 6px;
+                padding: 2px;
+                """
+            )
+            lay = QHBoxLayout(w)
+            lay.setContentsMargins(8, 4, 8, 4)
+            lay.setSpacing(6)
+            return w, lay
+
+        # --- Filter chip ---
+        self.filter_container, fl = _chip(config.Colors.PRIMARY)
+        self.filter_icon = QLabel("🎨")
+        self.filter_icon.setStyleSheet("font-size: 14px; background: transparent; padding: 0px;")
+        self.filter_label = QLabel("")
+        self.filter_label.setStyleSheet("color: white; font-weight: bold; background: transparent; padding: 0px;")
+        fl.addWidget(self.filter_icon)
+        fl.addWidget(self.filter_label)
+        self.status_layout.addWidget(self.filter_container)
+
+        self.sep1 = _vline()
+        self.status_layout.addWidget(self.sep1)
+
+        # --- Filename chip ---
+        self.filename_container, fnl = _chip(config.Colors.WIDGET)
+        self.filename_icon = QLabel("📄")
+        self.filename_icon.setStyleSheet("font-size: 14px; background: transparent; padding: 0px;")
+        self.filename_label = QLabel("")
+        self.filename_label.setStyleSheet("background: transparent; padding: 0px;")
+        fnl.addWidget(self.filename_icon)
+        fnl.addWidget(self.filename_label)
+        self.status_layout.addWidget(self.filename_container)
+
+        self.sep2 = _vline()
+        self.status_layout.addWidget(self.sep2)
+
+        # --- Input dims chip ---
+        self.dims_input_container, dil = _chip(config.Colors.WIDGET)
+        self.dims_input_icon = QLabel("📥")
+        self.dims_input_icon.setStyleSheet("font-size: 14px; background: transparent; padding: 0px;")
+        self.dimensions_input_label = QLabel("")
+        self.dimensions_input_label.setStyleSheet("background: transparent; padding: 0px;")
+        dil.addWidget(self.dims_input_icon)
+        dil.addWidget(self.dimensions_input_label)
+        self.status_layout.addWidget(self.dims_input_container)
+
+        self.sep3 = _vline()
+        self.status_layout.addWidget(self.sep3)
+
+        # --- Output dims chip ---
+        self.dims_output_container, dol = _chip(config.Colors.WIDGET)
+        self.dims_output_icon = QLabel("📤")
+        self.dims_output_icon.setStyleSheet("font-size: 14px; background: transparent; padding: 0px;")
+        self.dimensions_output_label = QLabel("")
+        self.dimensions_output_label.setStyleSheet("background: transparent; padding: 0px;")
+        dol.addWidget(self.dims_output_icon)
+        dol.addWidget(self.dimensions_output_label)
+        self.status_layout.addWidget(self.dims_output_container)
+
+        self.sep4 = _vline()
+        self.status_layout.addWidget(self.sep4)
+
+        # --- Coords chip ---
+        self.coords_container, cl = _chip(config.Colors.WIDGET)
+        self.coords_icon = QLabel("🖱️")
+        self.coords_icon.setStyleSheet("font-size: 14px; background: transparent; padding: 0px;")
+        self.coords_label = QLabel("")
+        self.coords_label.setStyleSheet("background: transparent; padding: 0px;")
+        cl.addWidget(self.coords_icon)
+        cl.addWidget(self.coords_label)
+        self.status_layout.addWidget(self.coords_container)
+
+        self.status_layout.addStretch()
+
+        # Apply initial texts + styles
+        self.update_status_bar_texts()
+        self.update_status_bar_styles()
+
+        self._status_initialized = True
+
+    def update_status_bar_texts(self):
+        """به‌روزرسانی متن‌های نوار وضعیت (برای تغییر زبان)"""
+        # Filter label text is updated via update_filter_label
+        self.update_filter_label(getattr(self, "current_filter_key", "original"))
+
+        # File
+        if getattr(self, "current_filename", ""):
+            self.update_filename_label(self.current_filename)
+        else:
+            self.filename_label.setText(Translations.get("status_file", self.current_lang) + ": -")
+
+        # Dims
+        if getattr(self, "original_image", None) is not None:
+            h, w = self.original_image.shape[:2]
+            self.update_dimensions_labels(w, h, w, h)
+        else:
+            self.dimensions_input_label.setText(Translations.get("status_input", self.current_lang) + ": -")
+            self.dimensions_output_label.setText(Translations.get("status_output", self.current_lang) + ": -")
+
+        # Coords
+        self.coords_label.setText(Translations.get("status_coords", self.current_lang) + ": -")
+
+    def update_status_bar_styles(self):
+        """به‌روزرسانی رنگ‌ها/استایل نوار وضعیت (برای تغییر تم)"""
         self.status_frame.setStyleSheet(
             f"""
             QFrame {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 {config.Colors.PANEL},
-                    stop:1 {config.Colors.WIDGET});
+                background: {config.Colors.PANEL};
                 border-top: 2px solid {config.Colors.PRIMARY};
                 padding: 8px;
             }}
@@ -354,174 +562,22 @@ class MainWindow(QMainWindow):
                 background: transparent;
                 color: {config.Colors.TEXT};
                 font-size: 12px;
-                padding: 4px 12px;
-                border-radius: 4px;
+                padding: 0px;
             }}
             """
         )
 
-        status_layout = QHBoxLayout(self.status_frame)
-        status_layout.setContentsMargins(10, 5, 10, 5)
-        status_layout.setSpacing(15)
-
-        # فیلتر
-        filter_container = QWidget()
-        filter_container.setStyleSheet(
-            f"""
-            background-color: {config.Colors.PRIMARY};
-            border-radius: 6px;
-            padding: 2px;
-            """
+        # chips
+        self.filter_container.setStyleSheet(
+            f"""background-color: {config.Colors.PRIMARY}; border-radius: 6px; padding: 2px;"""
         )
+        for w in (self.filename_container, self.dims_input_container, self.dims_output_container, self.coords_container):
+            w.setStyleSheet(
+                f"""background-color: {config.Colors.WIDGET}; border-radius: 6px; padding: 2px;"""
+            )
+        for sep in (self.sep1, self.sep2, self.sep3, self.sep4):
+            sep.setStyleSheet(f"background-color: {config.Colors.BORDER};")
 
-        filter_layout = QHBoxLayout(filter_container)
-        filter_layout.setContentsMargins(8, 4, 8, 4)
-
-        filter_icon = QLabel("🎨")
-        filter_icon.setStyleSheet(
-            "font-size: 14px; background: transparent; padding: 0px;"
-        )
-
-        self.filter_label = QLabel(
-            Translations.get("status_filter", self.current_lang)
-            + ": "
-            + Translations.get("filter_original", self.current_lang)
-        )
-        self.filter_label.setStyleSheet(
-            "color: white; font-weight: bold; background: transparent; padding: 0px;"
-        )
-
-        filter_layout.addWidget(filter_icon)
-        filter_layout.addWidget(self.filter_label)
-        status_layout.addWidget(filter_container)
-
-        # جداکننده
-        sep1 = QFrame()
-        sep1.setFrameShape(QFrame.VLine)
-        sep1.setStyleSheet(f"color: {config.Colors.BORDER};")
-        status_layout.addWidget(sep1)
-
-        # فایل
-        filename_container = QWidget()
-        filename_container.setStyleSheet(
-            f"""
-            background-color: {config.Colors.WIDGET};
-            border-radius: 6px;
-            padding: 2px;
-            """
-        )
-
-        filename_layout = QHBoxLayout(filename_container)
-        filename_layout.setContentsMargins(8, 4, 8, 4)
-
-        filename_icon = QLabel("📄")
-        filename_icon.setStyleSheet(
-            "font-size: 14px; background: transparent; padding: 0px;"
-        )
-
-        self.filename_label = QLabel(
-            Translations.get("status_file", self.current_lang) + ": -"
-        )
-        self.filename_label.setStyleSheet("background: transparent; padding: 0px;")
-
-        filename_layout.addWidget(filename_icon)
-        filename_layout.addWidget(self.filename_label)
-        status_layout.addWidget(filename_container)
-
-        # جداکننده
-        sep2 = QFrame()
-        sep2.setFrameShape(QFrame.VLine)
-        sep2.setStyleSheet(f"color: {config.Colors.BORDER};")
-        status_layout.addWidget(sep2)
-
-        # ✅ ابعاد Input (جدید!)
-        dims_input_container = QWidget()
-        dims_input_container.setStyleSheet(
-            f"""
-            background-color: {config.Colors.WIDGET};
-            border-radius: 6px;
-            padding: 2px;
-            """
-        )
-
-        dims_input_layout = QHBoxLayout(dims_input_container)
-        dims_input_layout.setContentsMargins(8, 4, 8, 4)
-
-        dims_input_icon = QLabel("📐")
-        dims_input_icon.setStyleSheet(
-            "font-size: 14px; background: transparent; padding: 0px;"
-        )
-
-        self.dimensions_input_label = QLabel("Input: -")
-        self.dimensions_input_label.setStyleSheet(
-            "background: transparent; padding: 0px;"
-        )
-
-        dims_input_layout.addWidget(dims_input_icon)
-        dims_input_layout.addWidget(self.dimensions_input_label)
-        status_layout.addWidget(dims_input_container)
-
-        # ✅ ابعاد Output (جدید!)
-        dims_output_container = QWidget()
-        dims_output_container.setStyleSheet(
-            f"""
-            background-color: {config.Colors.WIDGET};
-            border-radius: 6px;
-            padding: 2px;
-            """
-        )
-
-        dims_output_layout = QHBoxLayout(dims_output_container)
-        dims_output_layout.setContentsMargins(8, 4, 8, 4)
-
-        dims_output_icon = QLabel("✨")
-        dims_output_icon.setStyleSheet(
-            "font-size: 14px; background: transparent; padding: 0px;"
-        )
-
-        self.dimensions_output_label = QLabel("Output: -")
-        self.dimensions_output_label.setStyleSheet(
-            "color: white; background: transparent; padding: 0px;"
-        )
-
-        dims_output_layout.addWidget(dims_output_icon)
-        dims_output_layout.addWidget(self.dimensions_output_label)
-        status_layout.addWidget(dims_output_container)
-
-        # جداکننده
-        sep3 = QFrame()
-        sep3.setFrameShape(QFrame.VLine)
-        sep3.setStyleSheet(f"color: {config.Colors.BORDER};")
-        status_layout.addWidget(sep3)
-
-        # مختصات
-        coords_container = QWidget()
-        coords_container.setStyleSheet(
-            f"""
-            background-color: {config.Colors.WIDGET};
-            border-radius: 6px;
-            padding: 2px;
-            """
-        )
-
-        coords_layout = QHBoxLayout(coords_container)
-        coords_layout.setContentsMargins(8, 4, 8, 4)
-
-        coords_icon = QLabel("🖱️")
-        coords_icon.setStyleSheet(
-            "font-size: 14px; background: transparent; padding: 0px;"
-        )
-
-        self.coords_label = QLabel(
-            Translations.get("status_coords", self.current_lang) + ": -"
-        )
-        self.coords_label.setStyleSheet("background: transparent; padding: 0px;")
-
-        coords_layout.addWidget(coords_icon)
-        coords_layout.addWidget(self.coords_label)
-        status_layout.addWidget(coords_container)
-
-        status_layout.addStretch()
 
     def update_mouse_coords(self, x: int, y: int):
         if x >= 0 and y >= 0:
@@ -534,6 +590,7 @@ class MainWindow(QMainWindow):
             )
 
     def update_filter_label(self, filter_name: str):
+        self.current_filter_key = filter_name
         display_name = Translations.get_filter_name(filter_name, self.current_lang)
         self.current_filter_name = display_name
         self.filter_label.setText(
@@ -560,14 +617,14 @@ class MainWindow(QMainWindow):
     ):
         """بروزرسانی برچسب‌های ابعاد"""
         if input_w > 0 and input_h > 0:
-            self.dimensions_input_label.setText(f"Input: {input_w} × {input_h}")
+            self.dimensions_input_label.setText(Translations.get("status_input", self.current_lang) + f": {input_w} × {input_h}")
         else:
-            self.dimensions_input_label.setText("Input: -")
+            self.dimensions_input_label.setText(Translations.get("status_input", self.current_lang) + ": -")
 
         if output_w > 0 and output_h > 0:
-            self.dimensions_output_label.setText(f"Output: {output_w} × {output_h}")
+            self.dimensions_output_label.setText(Translations.get("status_output", self.current_lang) + f": {output_w} × {output_h}")
         else:
-            self.dimensions_output_label.setText("Output: -")
+            self.dimensions_output_label.setText(Translations.get("status_output", self.current_lang) + ": -")
 
     # ========== عملیات فایل ==========
 
@@ -644,7 +701,8 @@ class MainWindow(QMainWindow):
         if filename:
             self.log(f"Saving image: {os.path.basename(filename)}", "info")
 
-            if ImageManager.save_image(filename, self.current_image):
+            quality = self.settings.get_quality_value()
+            if ImageManager.save_image(filename, self.current_image, quality=quality):
                 self.log(
                     f"Image saved successfully: {os.path.basename(filename)}", "success"
                 )
@@ -883,3 +941,21 @@ class MainWindow(QMainWindow):
 
         scrollbar = self.console_text.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
+
+    def closeEvent(self, event):
+        """تایید خروج"""
+        try:
+            if self.settings.get("confirm_exit", True):
+                reply = QMessageBox.question(
+                    self,
+                    Translations.get("app_title", self.current_lang),
+                    Translations.get("msg_exit_confirm", self.current_lang),
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No,
+                )
+                if reply != QMessageBox.Yes:
+                    event.ignore()
+                    return
+        except Exception:
+            pass
+        event.accept()
