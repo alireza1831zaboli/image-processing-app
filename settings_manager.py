@@ -20,12 +20,10 @@ class SettingsManager:
         # ظاهر
         "language": "fa",  # fa یا en
         "theme": "dark",  # dark یا light
-
         # تجربه کاربری
         "zoom_speed": "normal",  # slow, normal, fast
         "show_hints": True,
         "confirm_exit": True,
-
         # فایل‌ها
         "save_quality": "high",  # low, medium, high, maximum
         "default_format": "PNG",  # PNG, JPEG, BMP
@@ -83,19 +81,21 @@ class SettingsManager:
     # ========== متدهای کمکی ==========
 
     def get_zoom_factor(self) -> float:
-        """دریافت ضریب zoom بر اساس سرعت"""
         speed = self.get("zoom_speed", "normal")
         factors = {"slow": 1.1, "normal": 1.2, "fast": 1.5}
         return factors.get(speed, 1.2)
 
     def get_quality_value(self) -> int:
-        """دریافت مقدار کیفیت (0-100)"""
         quality = self.get("save_quality", "high")
         values = {"low": 50, "medium": 75, "high": 90, "maximum": 100}
         return values.get(quality, 90)
 
+    def get_png_compression_level(self) -> int:
+        level = self.get("save_quality", "high")
+        values = {"low": 1, "medium": 3, "high": 6, "maximum": 9}
+        return int(values.get(level, 6))
+
     def is_rtl(self) -> bool:
-        """آیا زبان راست‌به‌چپ است؟"""
         return self.get("language", "fa") == "fa"
 
 

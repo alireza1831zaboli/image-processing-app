@@ -47,6 +47,7 @@ class SettingsDialog(QDialog):
 
         self.setup_ui()
         self.load_current_settings()
+        self._update_quality_ui()
         self.apply_styles()
         self.apply_direction()
 
@@ -77,57 +78,103 @@ class SettingsDialog(QDialog):
         ap_form.setVerticalSpacing(10)
 
         self.language_combo = QComboBox()
-        self.language_combo.addItem("🇮🇷 " + Translations.get("lang_persian", self.current_lang), "fa")
-        self.language_combo.addItem("🇬🇧 " + Translations.get("lang_english", self.current_lang), "en")
-        ap_form.addRow(Translations.get("settings_language", self.current_lang) + ":", self.language_combo)
+        self.language_combo.addItem(
+            "🇮🇷 " + Translations.get("lang_persian", self.current_lang), "fa"
+        )
+        self.language_combo.addItem(
+            "🇬🇧 " + Translations.get("lang_english", self.current_lang), "en"
+        )
+        ap_form.addRow(
+            Translations.get("settings_language", self.current_lang) + ":",
+            self.language_combo,
+        )
 
         self.theme_combo = QComboBox()
-        self.theme_combo.addItem("🌙 " + Translations.get("theme_dark", self.current_lang), "dark")
-        self.theme_combo.addItem("☀️ " + Translations.get("theme_light", self.current_lang), "light")
-        ap_form.addRow(Translations.get("settings_theme", self.current_lang) + ":", self.theme_combo)
+        self.theme_combo.addItem(
+            "🌙 " + Translations.get("theme_dark", self.current_lang), "dark"
+        )
+        self.theme_combo.addItem(
+            "☀️ " + Translations.get("theme_light", self.current_lang), "light"
+        )
+        ap_form.addRow(
+            Translations.get("settings_theme", self.current_lang) + ":",
+            self.theme_combo,
+        )
 
         appearance_group.setLayout(ap_form)
         layout.addWidget(appearance_group)
 
         # --- UX / Interaction ---
-        ux_group = QGroupBox("🧩 " + Translations.get("settings_interaction", self.current_lang))
+        ux_group = QGroupBox(
+            "🧩 " + Translations.get("settings_interaction", self.current_lang)
+        )
         ux_form = QFormLayout()
         ux_form.setHorizontalSpacing(14)
         ux_form.setVerticalSpacing(10)
 
         self.zoom_speed_combo = QComboBox()
-        self.zoom_speed_combo.addItem("🐢 " + Translations.get("speed_slow", self.current_lang), "slow")
-        self.zoom_speed_combo.addItem("⚡ " + Translations.get("speed_normal", self.current_lang), "normal")
-        self.zoom_speed_combo.addItem("🚀 " + Translations.get("speed_fast", self.current_lang), "fast")
-        ux_form.addRow(Translations.get("zoom_speed", self.current_lang) + ":", self.zoom_speed_combo)
+        self.zoom_speed_combo.addItem(
+            "🐢 " + Translations.get("speed_slow", self.current_lang), "slow"
+        )
+        self.zoom_speed_combo.addItem(
+            "⚡ " + Translations.get("speed_normal", self.current_lang), "normal"
+        )
+        self.zoom_speed_combo.addItem(
+            "🚀 " + Translations.get("speed_fast", self.current_lang), "fast"
+        )
+        ux_form.addRow(
+            Translations.get("zoom_speed", self.current_lang) + ":",
+            self.zoom_speed_combo,
+        )
 
-        self.show_hints_check = QCheckBox(Translations.get("show_hints", self.current_lang))
+        self.show_hints_check = QCheckBox(
+            Translations.get("show_hints", self.current_lang)
+        )
         ux_form.addRow(self.show_hints_check)
 
-        self.confirm_exit_check = QCheckBox(Translations.get("confirm_exit", self.current_lang))
+        self.confirm_exit_check = QCheckBox(
+            Translations.get("confirm_exit", self.current_lang)
+        )
         ux_form.addRow(self.confirm_exit_check)
 
         ux_group.setLayout(ux_form)
         layout.addWidget(ux_group)
 
         # --- Files ---
-        files_group = QGroupBox("💾 " + Translations.get("settings_files", self.current_lang))
+        files_group = QGroupBox(
+            "💾 " + Translations.get("settings_files", self.current_lang)
+        )
         files_form = QFormLayout()
         files_form.setHorizontalSpacing(14)
         files_form.setVerticalSpacing(10)
 
         self.quality_combo = QComboBox()
-        self.quality_combo.addItem(Translations.get("quality_low", self.current_lang) + " (50%)", "low")
-        self.quality_combo.addItem(Translations.get("quality_medium", self.current_lang) + " (75%)", "medium")
-        self.quality_combo.addItem(Translations.get("quality_high", self.current_lang) + " (90%)", "high")
-        self.quality_combo.addItem(Translations.get("quality_maximum", self.current_lang) + " (100%)", "maximum")
-        files_form.addRow(Translations.get("save_quality", self.current_lang) + ":", self.quality_combo)
+        self.quality_combo.addItem(
+            Translations.get("quality_low", self.current_lang) + " (50%)", "low"
+        )
+        self.quality_combo.addItem(
+            Translations.get("quality_medium", self.current_lang) + " (75%)", "medium"
+        )
+        self.quality_combo.addItem(
+            Translations.get("quality_high", self.current_lang) + " (90%)", "high"
+        )
+        self.quality_combo.addItem(
+            Translations.get("quality_maximum", self.current_lang) + " (100%)",
+            "maximum",
+        )
+        self.save_quality_label = QLabel(
+            Translations.get("save_quality", self.current_lang) + ":"
+        )
+        files_form.addRow(self.save_quality_label, self.quality_combo)
 
         self.format_combo = QComboBox()
         self.format_combo.addItem("PNG", "PNG")
         self.format_combo.addItem("JPEG", "JPEG")
         self.format_combo.addItem("BMP", "BMP")
-        files_form.addRow(Translations.get("default_format", self.current_lang) + ":", self.format_combo)
+        files_form.addRow(
+            Translations.get("default_format", self.current_lang) + ":",
+            self.format_combo,
+        )
 
         files_group.setLayout(files_form)
         layout.addWidget(files_group)
@@ -138,11 +185,15 @@ class SettingsDialog(QDialog):
         btns = QHBoxLayout()
         btns.addStretch(1)
 
-        self.reset_btn = QPushButton("🔄 " + Translations.get("btn_reset", self.current_lang))
+        self.reset_btn = QPushButton(
+            "🔄 " + Translations.get("btn_reset", self.current_lang)
+        )
         self.reset_btn.clicked.connect(self.reset_settings)
         btns.addWidget(self.reset_btn)
 
-        self.close_btn = QPushButton("✅ " + Translations.get("btn_close", self.current_lang))
+        self.close_btn = QPushButton(
+            "✅ " + Translations.get("btn_close", self.current_lang)
+        )
         self.close_btn.clicked.connect(self.accept)
         self.close_btn.setDefault(True)
         btns.addWidget(self.close_btn)
@@ -157,9 +208,12 @@ class SettingsDialog(QDialog):
         self.confirm_exit_check.toggled.connect(self._on_any_change)
         self.quality_combo.currentIndexChanged.connect(self._on_any_change)
         self.format_combo.currentIndexChanged.connect(self._on_any_change)
+        self.format_combo.currentIndexChanged.connect(self._update_quality_ui)
 
     def apply_direction(self):
-        self.setLayoutDirection(Qt.RightToLeft if self.settings.is_rtl() else Qt.LeftToRight)
+        self.setLayoutDirection(
+            Qt.RightToLeft if self.settings.is_rtl() else Qt.LeftToRight
+        )
 
     # ---------- Data ----------
 
@@ -207,6 +261,28 @@ class SettingsDialog(QDialog):
             "default_format": self.format_combo.currentData(),
         }
 
+    def _update_quality_ui(self):
+        fmt = self.format_combo.currentData() or "PNG"
+        if not hasattr(self, "save_quality_label"):
+            return
+
+        base = Translations.get("save_quality", self.current_lang) + ":"
+        if fmt == "PNG":
+            self.save_quality_label.setText(base + " (Compression)")
+            self.quality_combo.setToolTip(
+                "PNG is lossless. This option affects file size and save speed, not visual quality."
+            )
+        elif fmt == "BMP":
+            self.save_quality_label.setText(base)
+            self.quality_combo.setToolTip("BMP has no compression/quality setting.")
+        else:
+            self.save_quality_label.setText(base + " (Quality)")
+            self.quality_combo.setToolTip(
+                "Higher quality means larger file size (JPEG/WEBP)."
+            )
+
+        self.quality_combo.setEnabled(fmt != "BMP")
+
     def _on_any_change(self):
         if self._building:
             return
@@ -244,30 +320,48 @@ class SettingsDialog(QDialog):
         # Headings & group titles
         # چون گروه‌ها/لیبل‌ها در setup ساخته شده‌اند، سریع فقط متن‌ها را به‌روز می‌کنیم
         # (برای سادگی، کل دیالوگ را بازسازی نمی‌کنیم)
-        self.findChild(QLabel, "SettingsHeader").setText("⚙️ " + Translations.get("settings_title", self.current_lang))
+        self.findChild(QLabel, "SettingsHeader").setText(
+            "⚙️ " + Translations.get("settings_title", self.current_lang)
+        )
 
         groups = self.findChildren(QGroupBox)
         # Order: appearance, ux, files
         if len(groups) >= 3:
-            groups[0].setTitle("🎨 " + Translations.get("settings_appearance", self.current_lang))
-            groups[1].setTitle("🧩 " + Translations.get("settings_interaction", self.current_lang))
-            groups[2].setTitle("💾 " + Translations.get("settings_files", self.current_lang))
+            groups[0].setTitle(
+                "🎨 " + Translations.get("settings_appearance", self.current_lang)
+            )
+            groups[1].setTitle(
+                "🧩 " + Translations.get("settings_interaction", self.current_lang)
+            )
+            groups[2].setTitle(
+                "💾 " + Translations.get("settings_files", self.current_lang)
+            )
 
         # combos content
         # language
         self.language_combo.blockSignals(True)
         self.language_combo.clear()
-        self.language_combo.addItem("🇮🇷 " + Translations.get("lang_persian", self.current_lang), "fa")
-        self.language_combo.addItem("🇬🇧 " + Translations.get("lang_english", self.current_lang), "en")
-        self.language_combo.setCurrentIndex(self.language_combo.findData(self.settings.get("language", "fa")))
+        self.language_combo.addItem(
+            "🇮🇷 " + Translations.get("lang_persian", self.current_lang), "fa"
+        )
+        self.language_combo.addItem(
+            "🇬🇧 " + Translations.get("lang_english", self.current_lang), "en"
+        )
+        self.language_combo.setCurrentIndex(
+            self.language_combo.findData(self.settings.get("language", "fa"))
+        )
         self.language_combo.blockSignals(False)
 
         # theme
         self.theme_combo.blockSignals(True)
         cur_theme = self.settings.get("theme", "dark")
         self.theme_combo.clear()
-        self.theme_combo.addItem("🌙 " + Translations.get("theme_dark", self.current_lang), "dark")
-        self.theme_combo.addItem("☀️ " + Translations.get("theme_light", self.current_lang), "light")
+        self.theme_combo.addItem(
+            "🌙 " + Translations.get("theme_dark", self.current_lang), "dark"
+        )
+        self.theme_combo.addItem(
+            "☀️ " + Translations.get("theme_light", self.current_lang), "light"
+        )
         self.theme_combo.setCurrentIndex(self.theme_combo.findData(cur_theme))
         self.theme_combo.blockSignals(False)
 
@@ -275,24 +369,41 @@ class SettingsDialog(QDialog):
         self.zoom_speed_combo.blockSignals(True)
         cur_zoom = self.settings.get("zoom_speed", "normal")
         self.zoom_speed_combo.clear()
-        self.zoom_speed_combo.addItem("🐢 " + Translations.get("speed_slow", self.current_lang), "slow")
-        self.zoom_speed_combo.addItem("⚡ " + Translations.get("speed_normal", self.current_lang), "normal")
-        self.zoom_speed_combo.addItem("🚀 " + Translations.get("speed_fast", self.current_lang), "fast")
+        self.zoom_speed_combo.addItem(
+            "🐢 " + Translations.get("speed_slow", self.current_lang), "slow"
+        )
+        self.zoom_speed_combo.addItem(
+            "⚡ " + Translations.get("speed_normal", self.current_lang), "normal"
+        )
+        self.zoom_speed_combo.addItem(
+            "🚀 " + Translations.get("speed_fast", self.current_lang), "fast"
+        )
         self.zoom_speed_combo.setCurrentIndex(self.zoom_speed_combo.findData(cur_zoom))
         self.zoom_speed_combo.blockSignals(False)
 
         # checkboxes
         self.show_hints_check.setText(Translations.get("show_hints", self.current_lang))
-        self.confirm_exit_check.setText(Translations.get("confirm_exit", self.current_lang))
+        self.confirm_exit_check.setText(
+            Translations.get("confirm_exit", self.current_lang)
+        )
 
         # quality
         self.quality_combo.blockSignals(True)
         cur_q = self.settings.get("save_quality", "high")
         self.quality_combo.clear()
-        self.quality_combo.addItem(Translations.get("quality_low", self.current_lang) + " (50%)", "low")
-        self.quality_combo.addItem(Translations.get("quality_medium", self.current_lang) + " (75%)", "medium")
-        self.quality_combo.addItem(Translations.get("quality_high", self.current_lang) + " (90%)", "high")
-        self.quality_combo.addItem(Translations.get("quality_maximum", self.current_lang) + " (100%)", "maximum")
+        self.quality_combo.addItem(
+            Translations.get("quality_low", self.current_lang) + " (50%)", "low"
+        )
+        self.quality_combo.addItem(
+            Translations.get("quality_medium", self.current_lang) + " (75%)", "medium"
+        )
+        self.quality_combo.addItem(
+            Translations.get("quality_high", self.current_lang) + " (90%)", "high"
+        )
+        self.quality_combo.addItem(
+            Translations.get("quality_maximum", self.current_lang) + " (100%)",
+            "maximum",
+        )
         self.quality_combo.setCurrentIndex(self.quality_combo.findData(cur_q))
         self.quality_combo.blockSignals(False)
 
@@ -300,6 +411,7 @@ class SettingsDialog(QDialog):
         # to keep it simple, we set layout direction and re-apply stylesheet here.
         self.apply_direction()
         self.apply_styles()
+        self._update_quality_ui()
 
         # buttons
         self.reset_btn.setText("🔄 " + Translations.get("btn_reset", self.current_lang))

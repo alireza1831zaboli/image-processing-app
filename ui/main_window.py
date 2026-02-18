@@ -1,8 +1,3 @@
-"""
-پنجره اصلی نهایی با سیستم تنظیمات کامل
-Final Main Window with Complete Settings System
-"""
-
 from PySide6.QtGui import QTextCursor
 
 from PySide6.QtWidgets import (
@@ -35,18 +30,14 @@ import numpy as np
 
 
 class MainWindow(QMainWindow):
-    """پنجره اصلی"""
 
     def __init__(self):
         super().__init__()
 
-        # مدیریت تنظیمات
         self.settings = get_settings()
         self.current_lang = self.settings.get("language", "fa")
 
-        # عنوان پنجره
         self.setWindowTitle(Translations.get("app_title", self.current_lang))
-        # Tab titles
         if hasattr(self, "view_tabs"):
             self.view_tabs.setTabText(
                 0, Translations.get("image_view", self.current_lang)
@@ -55,20 +46,9 @@ class MainWindow(QMainWindow):
                 1, Translations.get("histogram_view", self.current_lang)
             )
 
-        # Viewer group titles
-        if hasattr(self, "original_group"):
-            self.original_group.setTitle(
-                Translations.get("original_image", self.current_lang)
-            )
-        if hasattr(self, "processed_group"):
-            self.processed_group.setTitle(
-                Translations.get("processed_image", self.current_lang)
-            )
-
         # Console title
         self.update_console_title()
 
-        # عناوین گروه‌ها
         if hasattr(self, "original_group"):
             self.original_group.setTitle(
                 Translations.get("original_image", self.current_lang)
@@ -86,39 +66,19 @@ class MainWindow(QMainWindow):
                 Translations.get("processed_histogram", self.current_lang)
             )
 
-        # عناوین گروه‌ها
-        if hasattr(self, "original_group"):
-            self.original_group.setTitle(
-                Translations.get("original_image", self.current_lang)
-            )
-        if hasattr(self, "processed_group"):
-            self.processed_group.setTitle(
-                Translations.get("processed_image", self.current_lang)
-            )
-        if hasattr(self, "original_hist_group"):
-            self.original_hist_group.setTitle(
-                Translations.get("original_histogram", self.current_lang)
-            )
-        if hasattr(self, "processed_hist_group"):
-            self.processed_hist_group.setTitle(
-                Translations.get("processed_histogram", self.current_lang)
-            )
         self.setGeometry(100, 100, config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
         self.setMinimumSize(config.WINDOW_MIN_WIDTH, config.WINDOW_MIN_HEIGHT)
 
-        # متغیرها
         self.original_image = None
         self.current_image = None
         self.processing_thread = None
-        self._retired_threads = []  # threads we stopped but are still finishing
+        self._retired_threads = []
         self.current_filter_key = "original"
         self.current_filter_name = Translations.get(
             "filter_original", self.current_lang
         )
         self.current_filename = ""
 
-        # Console log entries (so we can re-render them on theme change)
-        # Each entry: (timestamp_str, level, message)
         self._log_entries = []
 
         self.syncing = False
@@ -126,10 +86,8 @@ class MainWindow(QMainWindow):
 
         self.setup_ui()
         apply_app_theme(self.settings.get("theme", "dark"))
-        # self.control_panel.custom_kernel_clicked.connect(self.show_custom_kernel_dialog)
 
     def setup_ui(self):
-        """ساخت UI"""
         central = QWidget()
         self.setCentralWidget(central)
 
@@ -137,7 +95,6 @@ class MainWindow(QMainWindow):
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Layout اصلی
         content_layout = QHBoxLayout()
         content_layout.setSpacing(config.Layout.SPACING_MEDIUM)
         content_layout.setContentsMargins(
@@ -147,7 +104,6 @@ class MainWindow(QMainWindow):
             config.Layout.PADDING_SMALL,
         )
 
-        # پنل کنترل
         self.control_panel = ControlPanel()
         self.control_panel.setFixedWidth(config.CONTROL_PANEL_WIDTH)
         self.control_panel.filter_changed.connect(self.apply_filter)
@@ -205,7 +161,6 @@ class MainWindow(QMainWindow):
         self.console_text.setMaximumHeight(config.CONSOLE_HEIGHT - 20)
         self.update_console_styles()
 
-        # پیام خوش‌آمدگویی
         self.log("Application started successfully", "success")
         self.log("Ready to process images", "info")
 
@@ -219,17 +174,16 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.status_frame)
 
     def create_image_viewers(self):
-        """ایجاد viewer های تصویر"""
         viewers_layout = QHBoxLayout()
         viewers_layout.setSpacing(10)
 
-        # تصویر اصلی
         self.original_group = QGroupBox(
             Translations.get("original_image", self.current_lang)
         )
         original_layout = QVBoxLayout()
         self.original_viewer = ImageViewer()
         self.original_viewer.load_requested.connect(self.load_image)
+        self.original_viewer.file_dropped.connect(self.load_image_from_path)
         self.original_viewer.set_placeholder_text(
             Translations.get("msg_no_image", self.current_lang),
             Translations.get("load_image", self.current_lang),
@@ -253,6 +207,7 @@ class MainWindow(QMainWindow):
         processed_layout = QVBoxLayout()
         self.processed_viewer = ImageViewer()
         self.processed_viewer.load_requested.connect(self.load_image)
+        self.processed_viewer.file_dropped.connect(self.load_image_from_path)
         self.processed_viewer.set_placeholder_text(
             Translations.get("msg_no_image", self.current_lang),
             Translations.get("load_image", self.current_lang),
@@ -434,6 +389,7 @@ class MainWindow(QMainWindow):
 
         # ابعاد (اگر تصویر داریم)
         if self.original_image is not None:
+            self.processed_viewer.hide_processing()
             h, w = self.original_image.shape[:2]
             self.update_dimensions_labels(w, h, w, h)
         else:
@@ -793,6 +749,43 @@ class MainWindow(QMainWindow):
 
     # ========== عملیات فایل ==========
 
+    def load_image_from_path(self, filename: str):
+        filename = (filename or "").strip()
+        if not filename:
+            return
+        self._load_image_internal(filename)
+
+    def _load_image_internal(self, filename: str):
+        self.log(f"Loading image: {os.path.basename(filename)}", "info")
+
+        image = ImageManager.load_image(filename)
+
+        if image is not None:
+            self.original_image = image
+            self.current_image = image.copy()
+
+            self.original_viewer.set_image(self.original_image)
+            self.processed_viewer.set_image(self.current_image)
+            self.original_histogram.set_image(self.original_image)
+            self.processed_histogram.set_image(self.current_image)
+
+            self.settings.set("last_directory", os.path.dirname(filename))
+            self.settings.save()
+
+            self.update_filename_label(filename)
+            height, width = image.shape[:2]
+            self.update_dimensions_labels(width, height, width, height)
+            self.update_filter_label("original")
+
+            self.log(f"Image loaded successfully: {width}×{height} pixels", "success")
+        else:
+            self.log(f"Failed to load image: {os.path.basename(filename)}", "error")
+            QMessageBox.critical(
+                self,
+                Translations.get("msg_error", self.current_lang),
+                "Error loading image!",
+            )
+
     def load_image(self):
         """بارگذاری تصویر"""
         filename, _ = QFileDialog.getOpenFileName(
@@ -803,44 +796,7 @@ class MainWindow(QMainWindow):
         )
 
         if filename:
-            self.log(f"Loading image: {os.path.basename(filename)}", "info")
-
-            image = ImageManager.load_image(filename)
-
-            if image is not None:
-                self.original_image = image
-                self.current_image = image.copy()
-
-                # نمایش
-                self.original_viewer.set_image(self.original_image)
-                self.processed_viewer.set_image(self.current_image)
-                self.original_histogram.set_image(self.original_image)
-                self.processed_histogram.set_image(self.current_image)
-
-                # ذخیره مسیر
-                self.settings.set("last_directory", os.path.dirname(filename))
-                self.settings.save()
-
-                # بروزرسانی UI
-                self.update_filename_label(filename)
-                height, width = image.shape[:2]
-                self.update_dimensions_labels(width, height, width, height)
-                self.update_filter_label("original")
-
-                # ✅ Log موفقیت
-                self.log(
-                    f"Image loaded successfully: {width}×{height} pixels", "success"
-                )
-
-            else:
-                # ✅ Log خطا
-                self.log(f"Failed to load image: {os.path.basename(filename)}", "error")
-
-                QMessageBox.critical(
-                    self,
-                    Translations.get("msg_error", self.current_lang),
-                    "Error loading image!",
-                )
+            self._load_image_internal(filename)
 
     def save_image(self):
         """ذخیره تصویر"""
@@ -866,7 +822,15 @@ class MainWindow(QMainWindow):
         if filename:
             self.log(f"Saving image: {os.path.basename(filename)}", "info")
 
-            quality = self.settings.get_quality_value()
+            ext = os.path.splitext(filename)[1].lower()
+
+            if ext == ".png":
+                quality = self.settings.get_png_compression_level()
+            elif ext in [".jpg", ".jpeg", ".webp"]:
+                quality = self.settings.get_quality_value()
+            else:
+                quality = self.settings.get_quality_value()
+
             if ImageManager.save_image(filename, self.current_image, quality=quality):
                 self.log(
                     f"Image saved successfully: {os.path.basename(filename)}", "success"
@@ -903,6 +867,7 @@ class MainWindow(QMainWindow):
         self.update_filter_label(filter_name)
 
         if filter_name == "original":
+            self.processed_viewer.hide_processing()
             self.log("Reset to original image", "info")
             self.current_image = self.original_image.copy()
             self.processed_viewer.set_image(self.current_image)
@@ -921,6 +886,8 @@ class MainWindow(QMainWindow):
             old.finished.connect(lambda: self._cleanup_thread(old))
             old.error.connect(lambda *_: self._cleanup_thread(old))
 
+        self.processed_viewer.show_processing(f"{display_name}…")
+
         self.processing_thread = ProcessingThread(
             self.original_image, filter_name, params
         )
@@ -932,6 +899,7 @@ class MainWindow(QMainWindow):
         self.log(f"Processing started for '{display_name}'", "processing")
 
     def on_processing_finished(self, processed_image):
+        self.processed_viewer.hide_processing()
         """پایان پردازش"""
         self.current_image = processed_image
         self.processed_viewer.set_image(processed_image)
@@ -958,6 +926,7 @@ class MainWindow(QMainWindow):
             self.log(f"Filter applied successfully ({output_w}×{output_h})", "success")
 
     def on_processing_error(self, error_message: str):
+        self.processed_viewer.hide_processing()
         """خطا در پردازش"""
         self.log(f"Processing error: {error_message}", "error")
         QMessageBox.critical(

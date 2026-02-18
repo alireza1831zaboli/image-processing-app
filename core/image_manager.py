@@ -60,12 +60,21 @@ class ImageManager:
             elif ext == ".webp":
                 params = [int(cv2.IMWRITE_WEBP_QUALITY), int(max(0, min(100, quality)))]
             elif ext == ".png":
-                # quality 0..100 -> compression 0..9 (inverse)
-                comp = int(round(9 - (max(0, min(100, quality)) / 100.0) * 9))
+                # PNG has lossless quality; this is compression level.
+                # If caller passes 0..9, treat as direct compression level.
+                if 0 <= int(quality) <= 9:
+                    comp = int(quality)
+                else:
+                    # Backward compatible: quality 0..100 -> compression 0..9 (inverse)
+                    comp = int(round(9 - (max(0, min(100, quality)) / 100.0) * 9))
                 comp = max(0, min(9, comp))
                 params = [int(cv2.IMWRITE_PNG_COMPRESSION), comp]
 
-            success = cv2.imwrite(file_path, image, params) if params else cv2.imwrite(file_path, image)
+            success = (
+                cv2.imwrite(file_path, image, params)
+                if params
+                else cv2.imwrite(file_path, image)
+            )
             return bool(success)
         except Exception as e:
             print(f"Error saving image: {e}")
