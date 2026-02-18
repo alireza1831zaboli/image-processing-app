@@ -45,6 +45,18 @@ def get_main_stylesheet() -> str:
         background-color: {config.Colors.WIDGET};
         color: {config.Colors.TEXT_MUTED};
     }}
+
+        QPushButton[variant="danger"] {{
+        background-color: rgba(220, 80, 80, 0.85);
+        color: white;
+        border: none;
+    }}
+    QPushButton[variant="danger"]:hover {{
+        background-color: rgba(220, 80, 80, 0.95);
+    }}
+    QPushButton[variant="danger"]:pressed {{
+        background-color: rgba(200, 70, 70, 1.0);
+    }}
     
     /* ========== ComboBox ========== */
     QComboBox {{

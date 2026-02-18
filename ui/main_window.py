@@ -47,39 +47,62 @@ class MainWindow(QMainWindow):
         # عنوان پنجره
         self.setWindowTitle(Translations.get("app_title", self.current_lang))
         # Tab titles
-        if hasattr(self, 'view_tabs'):
-            self.view_tabs.setTabText(0, Translations.get('image_view', self.current_lang))
-            self.view_tabs.setTabText(1, Translations.get('histogram_view', self.current_lang))
+        if hasattr(self, "view_tabs"):
+            self.view_tabs.setTabText(
+                0, Translations.get("image_view", self.current_lang)
+            )
+            self.view_tabs.setTabText(
+                1, Translations.get("histogram_view", self.current_lang)
+            )
 
         # Viewer group titles
-        if hasattr(self, 'original_group'):
-            self.original_group.setTitle(Translations.get('original_image', self.current_lang))
-        if hasattr(self, 'processed_group'):
-            self.processed_group.setTitle(Translations.get('processed_image', self.current_lang))
+        if hasattr(self, "original_group"):
+            self.original_group.setTitle(
+                Translations.get("original_image", self.current_lang)
+            )
+        if hasattr(self, "processed_group"):
+            self.processed_group.setTitle(
+                Translations.get("processed_image", self.current_lang)
+            )
 
         # Console title
         self.update_console_title()
 
         # عناوین گروه‌ها
         if hasattr(self, "original_group"):
-            self.original_group.setTitle(Translations.get("original_image", self.current_lang))
+            self.original_group.setTitle(
+                Translations.get("original_image", self.current_lang)
+            )
         if hasattr(self, "processed_group"):
-            self.processed_group.setTitle(Translations.get("processed_image", self.current_lang))
+            self.processed_group.setTitle(
+                Translations.get("processed_image", self.current_lang)
+            )
         if hasattr(self, "original_hist_group"):
-            self.original_hist_group.setTitle(Translations.get("original_histogram", self.current_lang))
+            self.original_hist_group.setTitle(
+                Translations.get("original_histogram", self.current_lang)
+            )
         if hasattr(self, "processed_hist_group"):
-            self.processed_hist_group.setTitle(Translations.get("processed_histogram", self.current_lang))
-
+            self.processed_hist_group.setTitle(
+                Translations.get("processed_histogram", self.current_lang)
+            )
 
         # عناوین گروه‌ها
         if hasattr(self, "original_group"):
-            self.original_group.setTitle(Translations.get("original_image", self.current_lang))
+            self.original_group.setTitle(
+                Translations.get("original_image", self.current_lang)
+            )
         if hasattr(self, "processed_group"):
-            self.processed_group.setTitle(Translations.get("processed_image", self.current_lang))
+            self.processed_group.setTitle(
+                Translations.get("processed_image", self.current_lang)
+            )
         if hasattr(self, "original_hist_group"):
-            self.original_hist_group.setTitle(Translations.get("original_histogram", self.current_lang))
+            self.original_hist_group.setTitle(
+                Translations.get("original_histogram", self.current_lang)
+            )
         if hasattr(self, "processed_hist_group"):
-            self.processed_hist_group.setTitle(Translations.get("processed_histogram", self.current_lang))
+            self.processed_hist_group.setTitle(
+                Translations.get("processed_histogram", self.current_lang)
+            )
         self.setGeometry(100, 100, config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
         self.setMinimumSize(config.WINDOW_MIN_WIDTH, config.WINDOW_MIN_HEIGHT)
 
@@ -102,7 +125,7 @@ class MainWindow(QMainWindow):
         self.syncing_histograms = False
 
         self.setup_ui()
-        apply_app_theme(self.settings.get('theme','dark'))
+        apply_app_theme(self.settings.get("theme", "dark"))
         # self.control_panel.custom_kernel_clicked.connect(self.show_custom_kernel_dialog)
 
     def setup_ui(self):
@@ -165,7 +188,9 @@ class MainWindow(QMainWindow):
         content_layout.addWidget(self.view_tabs, stretch=1)
         main_layout.addLayout(content_layout)
 
-        self.console_group = QGroupBox(Translations.get("console_title", self.current_lang))
+        self.console_group = QGroupBox(
+            Translations.get("console_title", self.current_lang)
+        )
         self.console_group.setMaximumHeight(config.CONSOLE_HEIGHT)
         console_layout = QVBoxLayout()
         console_layout.setContentsMargins(
@@ -204,6 +229,14 @@ class MainWindow(QMainWindow):
         )
         original_layout = QVBoxLayout()
         self.original_viewer = ImageViewer()
+        self.original_viewer.load_requested.connect(self.load_image)
+        self.original_viewer.set_placeholder_text(
+            Translations.get("msg_no_image", self.current_lang),
+            Translations.get("load_image", self.current_lang),
+        )
+        self.original_viewer.placeholder_button.setText(
+            "📂 " + Translations.get("load_image", self.current_lang)
+        )
         self.original_viewer.sync_enabled = True
         self.original_viewer.mouse_moved.connect(self.on_original_mouse_moved)
         self.original_viewer.mouse_left.connect(self.on_original_mouse_left)
@@ -219,6 +252,14 @@ class MainWindow(QMainWindow):
         )
         processed_layout = QVBoxLayout()
         self.processed_viewer = ImageViewer()
+        self.processed_viewer.load_requested.connect(self.load_image)
+        self.processed_viewer.set_placeholder_text(
+            Translations.get("msg_no_image", self.current_lang),
+            Translations.get("load_image", self.current_lang),
+        )
+        self.processed_viewer.placeholder_button.setText(
+            "📂 " + Translations.get("load_image", self.current_lang)
+        )
         self.processed_viewer.sync_enabled = True
         self.processed_viewer.mouse_moved.connect(self.on_processed_mouse_moved)
         self.processed_viewer.mouse_left.connect(self.on_processed_mouse_left)
@@ -366,7 +407,6 @@ class MainWindow(QMainWindow):
         if hasattr(self.control_panel, "set_show_hints"):
             self.control_panel.set_show_hints(self.settings.get("show_hints", True))
 
-
     def apply_language(self):
         """اعمال زبان در لحظه (عنوان، لیبل‌ها، جهت، پنل کنترل)"""
         # جهت کلی پنجره
@@ -379,13 +419,15 @@ class MainWindow(QMainWindow):
 
         # برچسب‌های status
         # فیلتر
-        self.update_filter_label(getattr(self, 'current_filter_key', 'original'))
+        self.update_filter_label(getattr(self, "current_filter_key", "original"))
 
         # فایل
         if self.current_filename:
             self.update_filename_label(self.current_filename)
         else:
-            self.filename_label.setText(Translations.get("status_file", self.current_lang) + ": -")
+            self.filename_label.setText(
+                Translations.get("status_file", self.current_lang) + ": -"
+            )
 
         # مختصات
         self.update_mouse_coords(-1, -1)
@@ -395,8 +437,12 @@ class MainWindow(QMainWindow):
             h, w = self.original_image.shape[:2]
             self.update_dimensions_labels(w, h, w, h)
         else:
-            self.dimensions_input_label.setText(Translations.get("status_input", self.current_lang) + ": -")
-            self.dimensions_output_label.setText(Translations.get("status_output", self.current_lang) + ": -")
+            self.dimensions_input_label.setText(
+                Translations.get("status_input", self.current_lang) + ": -"
+            )
+            self.dimensions_output_label.setText(
+                Translations.get("status_output", self.current_lang) + ": -"
+            )
 
         self.update_console_title()
 
@@ -471,12 +517,18 @@ class MainWindow(QMainWindow):
     def update_console_title(self):
         """عنوان گروه کنسول را با زبان فعلی هماهنگ می‌کند"""
         if hasattr(self, "console_group"):
-            self.console_group.setTitle(Translations.get("console_title", self.current_lang))
+            self.console_group.setTitle(
+                Translations.get("console_title", self.current_lang)
+            )
 
     def refresh_dynamic_styles(self):
         """بازاعمال استایل ویجت‌هایی که استایل داخلی دارند"""
         if hasattr(self, "status_frame"):
             self.update_status_bar_styles()
+        if hasattr(self, "original_viewer"):
+            self.original_viewer.refresh_styles()
+        if hasattr(self, "processed_viewer"):
+            self.processed_viewer.refresh_styles()
         if hasattr(self, "console_text"):
             self.update_console_styles()
             # important: existing log lines were rendered with the previous theme colors
@@ -495,9 +547,7 @@ class MainWindow(QMainWindow):
                 child = item.layout()
                 if child is not None:
                     self._clear_layout(child)
-        
 
-    
     def create_status_bar(self):
         """ایجاد نوار وضعیت (یک‌بار)"""
         if getattr(self, "_status_initialized", False):
@@ -537,9 +587,13 @@ class MainWindow(QMainWindow):
         # --- Filter chip ---
         self.filter_container, fl = _chip(config.Colors.PRIMARY)
         self.filter_icon = QLabel("🎨")
-        self.filter_icon.setStyleSheet("font-size: 14px; background: transparent; padding: 0px;")
+        self.filter_icon.setStyleSheet(
+            "font-size: 14px; background: transparent; padding: 0px;"
+        )
         self.filter_label = QLabel("")
-        self.filter_label.setStyleSheet("color: white; font-weight: bold; background: transparent; padding: 0px;")
+        self.filter_label.setStyleSheet(
+            "color: white; font-weight: bold; background: transparent; padding: 0px;"
+        )
         fl.addWidget(self.filter_icon)
         fl.addWidget(self.filter_label)
         self.status_layout.addWidget(self.filter_container)
@@ -550,7 +604,9 @@ class MainWindow(QMainWindow):
         # --- Filename chip ---
         self.filename_container, fnl = _chip(config.Colors.WIDGET)
         self.filename_icon = QLabel("📄")
-        self.filename_icon.setStyleSheet("font-size: 14px; background: transparent; padding: 0px;")
+        self.filename_icon.setStyleSheet(
+            "font-size: 14px; background: transparent; padding: 0px;"
+        )
         self.filename_label = QLabel("")
         self.filename_label.setStyleSheet("background: transparent; padding: 0px;")
         fnl.addWidget(self.filename_icon)
@@ -563,9 +619,13 @@ class MainWindow(QMainWindow):
         # --- Input dims chip ---
         self.dims_input_container, dil = _chip(config.Colors.WIDGET)
         self.dims_input_icon = QLabel("📥")
-        self.dims_input_icon.setStyleSheet("font-size: 14px; background: transparent; padding: 0px;")
+        self.dims_input_icon.setStyleSheet(
+            "font-size: 14px; background: transparent; padding: 0px;"
+        )
         self.dimensions_input_label = QLabel("")
-        self.dimensions_input_label.setStyleSheet("background: transparent; padding: 0px;")
+        self.dimensions_input_label.setStyleSheet(
+            "background: transparent; padding: 0px;"
+        )
         dil.addWidget(self.dims_input_icon)
         dil.addWidget(self.dimensions_input_label)
         self.status_layout.addWidget(self.dims_input_container)
@@ -576,9 +636,13 @@ class MainWindow(QMainWindow):
         # --- Output dims chip ---
         self.dims_output_container, dol = _chip(config.Colors.WIDGET)
         self.dims_output_icon = QLabel("📤")
-        self.dims_output_icon.setStyleSheet("font-size: 14px; background: transparent; padding: 0px;")
+        self.dims_output_icon.setStyleSheet(
+            "font-size: 14px; background: transparent; padding: 0px;"
+        )
         self.dimensions_output_label = QLabel("")
-        self.dimensions_output_label.setStyleSheet("background: transparent; padding: 0px;")
+        self.dimensions_output_label.setStyleSheet(
+            "background: transparent; padding: 0px;"
+        )
         dol.addWidget(self.dims_output_icon)
         dol.addWidget(self.dimensions_output_label)
         self.status_layout.addWidget(self.dims_output_container)
@@ -589,7 +653,9 @@ class MainWindow(QMainWindow):
         # --- Coords chip ---
         self.coords_container, cl = _chip(config.Colors.WIDGET)
         self.coords_icon = QLabel("🖱️")
-        self.coords_icon.setStyleSheet("font-size: 14px; background: transparent; padding: 0px;")
+        self.coords_icon.setStyleSheet(
+            "font-size: 14px; background: transparent; padding: 0px;"
+        )
         self.coords_label = QLabel("")
         self.coords_label.setStyleSheet("background: transparent; padding: 0px;")
         cl.addWidget(self.coords_icon)
@@ -613,18 +679,26 @@ class MainWindow(QMainWindow):
         if getattr(self, "current_filename", ""):
             self.update_filename_label(self.current_filename)
         else:
-            self.filename_label.setText(Translations.get("status_file", self.current_lang) + ": -")
+            self.filename_label.setText(
+                Translations.get("status_file", self.current_lang) + ": -"
+            )
 
         # Dims
         if getattr(self, "original_image", None) is not None:
             h, w = self.original_image.shape[:2]
             self.update_dimensions_labels(w, h, w, h)
         else:
-            self.dimensions_input_label.setText(Translations.get("status_input", self.current_lang) + ": -")
-            self.dimensions_output_label.setText(Translations.get("status_output", self.current_lang) + ": -")
+            self.dimensions_input_label.setText(
+                Translations.get("status_input", self.current_lang) + ": -"
+            )
+            self.dimensions_output_label.setText(
+                Translations.get("status_output", self.current_lang) + ": -"
+            )
 
         # Coords
-        self.coords_label.setText(Translations.get("status_coords", self.current_lang) + ": -")
+        self.coords_label.setText(
+            Translations.get("status_coords", self.current_lang) + ": -"
+        )
 
     def update_status_bar_styles(self):
         """به‌روزرسانی رنگ‌ها/استایل نوار وضعیت (برای تغییر تم)"""
@@ -648,13 +722,17 @@ class MainWindow(QMainWindow):
         self.filter_container.setStyleSheet(
             f"""background-color: {config.Colors.PRIMARY}; border-radius: 6px; padding: 2px;"""
         )
-        for w in (self.filename_container, self.dims_input_container, self.dims_output_container, self.coords_container):
+        for w in (
+            self.filename_container,
+            self.dims_input_container,
+            self.dims_output_container,
+            self.coords_container,
+        ):
             w.setStyleSheet(
                 f"""background-color: {config.Colors.WIDGET}; border-radius: 6px; padding: 2px;"""
             )
         for sep in (self.sep1, self.sep2, self.sep3, self.sep4):
             sep.setStyleSheet(f"background-color: {config.Colors.BORDER};")
-
 
     def update_mouse_coords(self, x: int, y: int):
         if x >= 0 and y >= 0:
@@ -694,14 +772,24 @@ class MainWindow(QMainWindow):
     ):
         """بروزرسانی برچسب‌های ابعاد"""
         if input_w > 0 and input_h > 0:
-            self.dimensions_input_label.setText(Translations.get("status_input", self.current_lang) + f": {input_w} × {input_h}")
+            self.dimensions_input_label.setText(
+                Translations.get("status_input", self.current_lang)
+                + f": {input_w} × {input_h}"
+            )
         else:
-            self.dimensions_input_label.setText(Translations.get("status_input", self.current_lang) + ": -")
+            self.dimensions_input_label.setText(
+                Translations.get("status_input", self.current_lang) + ": -"
+            )
 
         if output_w > 0 and output_h > 0:
-            self.dimensions_output_label.setText(Translations.get("status_output", self.current_lang) + f": {output_w} × {output_h}")
+            self.dimensions_output_label.setText(
+                Translations.get("status_output", self.current_lang)
+                + f": {output_w} × {output_h}"
+            )
         else:
-            self.dimensions_output_label.setText(Translations.get("status_output", self.current_lang) + ": -")
+            self.dimensions_output_label.setText(
+                Translations.get("status_output", self.current_lang) + ": -"
+            )
 
     # ========== عملیات فایل ==========
 

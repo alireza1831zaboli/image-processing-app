@@ -142,7 +142,9 @@ class ControlPanel(QWidget):
         main_layout.addWidget(scroll, 1)
 
         # راهنما
-        self.hint_label = QLabel("💡 " + Translations.get("hint_default", self.current_lang))
+        self.hint_label = QLabel(
+            "💡 " + Translations.get("hint_default", self.current_lang)
+        )
         self.hint_label.setStyleSheet(
             f"""
             QLabel {{
@@ -207,12 +209,19 @@ class ControlPanel(QWidget):
         if self.settings.get("show_hints", True) and hasattr(self, "hint_label"):
             try:
                 from PySide6.QtCore import QEvent
-                if event.type() in (QEvent.Enter, QEvent.FocusIn, QEvent.MouseButtonPress):
+
+                if event.type() in (
+                    QEvent.Enter,
+                    QEvent.FocusIn,
+                    QEvent.MouseButtonPress,
+                ):
                     if obj in self._hint_registry:
                         self.hint_label.setText("💡 " + obj.toolTip())
                 elif event.type() in (QEvent.Leave, QEvent.FocusOut):
                     # revert to default hint
-                    self.hint_label.setText("💡 " + Translations.get("hint_default", self.current_lang))
+                    self.hint_label.setText(
+                        "💡 " + Translations.get("hint_default", self.current_lang)
+                    )
             except Exception:
                 pass
         return super().eventFilter(obj, event)
@@ -225,7 +234,9 @@ class ControlPanel(QWidget):
 
         # ✅ Toggle برای Auto-Apply
         auto_layout = QHBoxLayout()
-        self.auto_apply_check = QCheckBox(Translations.get("auto_apply", self.current_lang))
+        self.auto_apply_check = QCheckBox(
+            Translations.get("auto_apply", self.current_lang)
+        )
         self.auto_apply_check.setChecked(True)
         self.auto_apply_check.setToolTip(
             "When enabled, filter applies automatically.\n"
@@ -239,7 +250,9 @@ class ControlPanel(QWidget):
         layout.addLayout(auto_layout)
 
         # ✅ دکمه Apply
-        self.apply_btn = QPushButton("✅ " + Translations.get("apply_filter_btn", self.current_lang))
+        self.apply_btn = QPushButton(
+            "✅ " + Translations.get("apply_filter_btn", self.current_lang)
+        )
         self.apply_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.apply_btn.setEnabled(False)
         self.apply_btn.clicked.connect(self.on_apply_clicked)
@@ -374,7 +387,9 @@ class ControlPanel(QWidget):
         self.params_layout.setContentsMargins(0, 0, 0, 0)
 
         # پیغام پیشفرض
-        self.no_params_label = QLabel("ℹ️ " + Translations.get("no_params", self.current_lang))
+        self.no_params_label = QLabel(
+            "ℹ️ " + Translations.get("no_params", self.current_lang)
+        )
         self.no_params_label.setAlignment(Qt.AlignCenter)
         self.no_params_label.setStyleSheet(
             f"""
@@ -396,19 +411,27 @@ class ControlPanel(QWidget):
 
     def create_operations_group(self):
         """گروه عملیات"""
-        group = QGroupBox("🔧 " + Translations.get("operations_group", self.current_lang))
+        group = QGroupBox(
+            "🔧 " + Translations.get("operations_group", self.current_lang)
+        )
         layout = QGridLayout()
         layout.setSpacing(6)
 
-        self.load_btn = QPushButton("📂 " + Translations.get("load_image", self.current_lang))
+        self.load_btn = QPushButton(
+            "📂 " + Translations.get("load_image", self.current_lang)
+        )
         self.load_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.load_btn.clicked.connect(self.load_clicked.emit)
 
-        self.save_btn = QPushButton("💾 " + Translations.get("save_image", self.current_lang))
+        self.save_btn = QPushButton(
+            "💾 " + Translations.get("save_image", self.current_lang)
+        )
         self.save_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.save_btn.clicked.connect(self.save_clicked.emit)
 
-        self.settings_btn = QPushButton("⚙️ " + Translations.get("settings", self.current_lang))
+        self.settings_btn = QPushButton(
+            "⚙️ " + Translations.get("settings", self.current_lang)
+        )
         self.settings_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.settings_btn.clicked.connect(self.settings_clicked.emit)
 
@@ -437,7 +460,10 @@ class ControlPanel(QWidget):
         self.zoom_reset_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.zoom_reset_btn.clicked.connect(self.zoom_reset_clicked.emit)
 
-        self.reset_btn = QPushButton("↺ " + Translations.get("reset_all", self.current_lang))
+        self.reset_btn = QPushButton(
+            "↺ " + Translations.get("reset_all", self.current_lang)
+        )
+        self.reset_btn.setProperty("variant", "danger")
         self.reset_btn.setMinimumHeight(config.Layout.BUTTON_HEIGHT)
         self.reset_btn.clicked.connect(self.reset_clicked.emit)
 
@@ -612,7 +638,9 @@ class ControlPanel(QWidget):
 
         if not params_config:
             # اگر پارامتری نداشت
-            self.no_params_label = QLabel("ℹ️ " + Translations.get("no_params", self.current_lang))
+            self.no_params_label = QLabel(
+                "ℹ️ " + Translations.get("no_params", self.current_lang)
+            )
             self.no_params_label.setAlignment(Qt.AlignCenter)
             self.no_params_label.setStyleSheet(
                 f"""
@@ -874,7 +902,6 @@ class ControlPanel(QWidget):
                     "label": "Dynamic Ratio",
                 },
             },
-
             # Point Detection (Project #3)
             "moravec_corner": {
                 "threshold": {
@@ -918,7 +945,6 @@ class ControlPanel(QWidget):
                     "label": "Circle Thickness",
                 },
             },
-
             "haralick_corner": {
                 # Using percentile makes the threshold robust across different images.
                 # Threshold is applied on w=det(Hessian) (higher is more corner-like).
@@ -973,7 +999,6 @@ class ControlPanel(QWidget):
                     "label": "Circle Thickness",
                 },
             },
-
             "harris_corner": {
                 # Percentile threshold is far more usable than a raw huge-number threshold.
                 # It selects top responses from R=det(H)-trace(H)^2.
@@ -1060,6 +1085,7 @@ class ControlPanel(QWidget):
         label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
         # Keep label flexible but readable; it can wrap on narrow widths.
         from PySide6.QtWidgets import QSizePolicy
+
         label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         grid.addWidget(label, 0, 0)
 
@@ -1139,7 +1165,6 @@ class ControlPanel(QWidget):
                 f"[Params] Not applying (auto_apply={self.auto_apply}, filter={self.current_filter})"
             )
 
-
     def set_show_hints(self, enabled: bool):
         """نمایش/مخفی کردن راهنمای پایین پنل"""
         if hasattr(self, "hint_label") and self.hint_label is not None:
@@ -1150,45 +1175,69 @@ class ControlPanel(QWidget):
         if not USE_TRANSLATIONS:
             return
         self.current_lang = lang or "fa"
-        self.setLayoutDirection(Qt.RightToLeft if self.current_lang == "fa" else Qt.LeftToRight)
+        self.setLayoutDirection(
+            Qt.RightToLeft if self.current_lang == "fa" else Qt.LeftToRight
+        )
 
         # Titles
         try:
-            self.filters_group.setTitle("🎨 " + Translations.get("filters_group", self.current_lang))
+            self.filters_group.setTitle(
+                "🎨 " + Translations.get("filters_group", self.current_lang)
+            )
         except Exception:
             pass
         try:
-            self.params_group.setTitle("🧪 " + Translations.get("params_group", self.current_lang))
+            self.params_group.setTitle(
+                "🧪 " + Translations.get("params_group", self.current_lang)
+            )
         except Exception:
             pass
         try:
-            self.apply_group.setTitle("🎯 " + Translations.get("apply_group", self.current_lang))
+            self.apply_group.setTitle(
+                "🎯 " + Translations.get("apply_group", self.current_lang)
+            )
         except Exception:
             pass
         try:
-            self.operations_group.setTitle("🛠️ " + Translations.get("operations_group", self.current_lang))
+            self.operations_group.setTitle(
+                "🛠️ " + Translations.get("operations_group", self.current_lang)
+            )
         except Exception:
             pass
         try:
-            self.zoom_group.setTitle("🔍 " + Translations.get("zoom_group", self.current_lang))
+            self.zoom_group.setTitle(
+                "🔍 " + Translations.get("zoom_group", self.current_lang)
+            )
         except Exception:
             pass
 
         # Buttons (if exist)
         if hasattr(self, "load_btn"):
-            self.load_btn.setText("📂 " + Translations.get("load_image", self.current_lang))
+            self.load_btn.setText(
+                "📂 " + Translations.get("load_image", self.current_lang)
+            )
         if hasattr(self, "save_btn"):
-            self.save_btn.setText("💾 " + Translations.get("save_image", self.current_lang))
+            self.save_btn.setText(
+                "💾 " + Translations.get("save_image", self.current_lang)
+            )
         if hasattr(self, "reset_btn"):
             self.reset_btn.setText("🔄 " + Translations.get("reset", self.current_lang))
         if hasattr(self, "settings_btn"):
-            self.settings_btn.setText("⚙️ " + Translations.get("settings_title", self.current_lang))
+            self.settings_btn.setText(
+                "⚙️ " + Translations.get("settings_title", self.current_lang)
+            )
 
         if hasattr(self, "auto_apply_check"):
-            self.auto_apply_check.setText(Translations.get("auto_apply", self.current_lang))
+            self.auto_apply_check.setText(
+                Translations.get("auto_apply", self.current_lang)
+            )
         if hasattr(self, "apply_btn"):
-            self.apply_btn.setText("✅ " + Translations.get("apply_filter_btn", self.current_lang))
+            self.apply_btn.setText(
+                "✅ " + Translations.get("apply_filter_btn", self.current_lang)
+            )
 
         # Hint
         if hasattr(self, "hint_label"):
-            self.hint_label.setText("💡 " + Translations.get("hint_zoom_wheel", self.current_lang))
+            self.hint_label.setText(
+                "💡 " + Translations.get("hint_zoom_wheel", self.current_lang)
+            )

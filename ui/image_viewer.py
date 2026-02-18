@@ -4,7 +4,7 @@ Image Viewer with Zoom and Pan
 """
 
 import numpy as np
-from PySide6.QtWidgets import QLabel, QScrollArea
+from PySide6.QtWidgets import QLabel, QScrollArea, QWidget, QVBoxLayout, QPushButton
 from PySide6.QtCore import Qt, QPoint, Signal, QPointF
 from PySide6.QtGui import QImage, QPixmap, QCursor, QMouseEvent, QPainter, QPen, QColor
 import config
@@ -65,6 +65,7 @@ class ImageViewer(QScrollArea):
     """ویوئر تصویر با قابلیت zoom و pan"""
 
     # سیگنال‌ها
+    load_requested = Signal()
     mouse_moved = Signal(int, int)  # x, y در تصویر اصلی
     mouse_left = Signal()  # موس از viewer خارج شد
     zoom_changed = Signal(float)  # zoom factor تغییر کرد
@@ -75,6 +76,7 @@ class ImageViewer(QScrollArea):
 
         # ویجت نمایش تصویر (با قابلیت crosshair)
         self.image_label = ImageLabel()
+
         self.image_label.setAlignment(Qt.AlignCenter)
         self.image_label.setStyleSheet(
             f"""
@@ -93,6 +95,9 @@ class ImageViewer(QScrollArea):
         # متغیرهای zoom و pan
         self.zoom_factor = 1.0
         self.original_pixmap = None
+        self._placeholder_text = "No image loaded"
+        self._placeholder_subtext = ""
+        self._has_image = False
         self.is_panning = False
         self.pan_start_pos = QPoint()
 
@@ -110,6 +115,37 @@ class ImageViewer(QScrollArea):
         # فعال کردن mouse tracking
         self.setMouseTracking(True)
         self.image_label.setMouseTracking(True)
+
+        self.show_placeholder()
+
+        # --- Placeholder overlay (text + button) ---
+        self.placeholder_overlay = QWidget(self.viewport())
+        self.placeholder_overlay.setObjectName("placeholderOverlay")
+        self.placeholder_overlay.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+
+        ovl = QVBoxLayout(self.placeholder_overlay)
+        ovl.setContentsMargins(24, 24, 24, 24)
+        ovl.setSpacing(10)
+        ovl.setAlignment(Qt.AlignCenter)
+
+        self.placeholder_title = QLabel(self._placeholder_text)
+        self.placeholder_title.setAlignment(Qt.AlignCenter)
+        self.placeholder_title.setWordWrap(True)
+
+        self.placeholder_subtitle = QLabel(self._placeholder_subtext)
+        self.placeholder_subtitle.setAlignment(Qt.AlignCenter)
+        self.placeholder_subtitle.setWordWrap(True)
+
+        self.placeholder_button = QPushButton("📂 Load Image")
+        self.placeholder_button.setProperty("variant", "primary")
+        self.placeholder_button.setCursor(Qt.PointingHandCursor)
+        self.placeholder_button.clicked.connect(self.load_requested.emit)
+
+        ovl.addWidget(self.placeholder_title)
+        ovl.addWidget(self.placeholder_subtitle)
+        ovl.addWidget(self.placeholder_button)
+
+        self.placeholder_overlay.hide()
 
         # اتصال scroll bar ها برای emit کردن pan_changed
         self.horizontalScrollBar().valueChanged.connect(self._on_scroll_changed)
@@ -139,6 +175,7 @@ class ImageViewer(QScrollArea):
             image_array: آرایه numpy تصویر (grayscale یا RGB)
         """
         if image_array is None or image_array.size == 0:
+            self.show_placeholder()
             return
 
         try:
@@ -186,9 +223,12 @@ class ImageViewer(QScrollArea):
                         QImage.Format_RGB888,
                     )
 
-
             # تبدیل به pixmap و ذخیره
             self.original_pixmap = QPixmap.fromImage(q_image)
+            self.image_label.show()
+            self._has_image = True
+            if hasattr(self, "placeholder_overlay"):
+                self.placeholder_overlay.hide()
             self.update_display()
 
         except Exception as e:
@@ -355,6 +395,73 @@ class ImageViewer(QScrollArea):
         """پاک کردن تصویر"""
         self.image_label.clear()
         self.original_pixmap = None
+        self._placeholder_text = "No image loaded"
+        self._placeholder_subtext = ""
+        self._has_image = False
         self.zoom_factor = 1.0
         self.original_image_size = None
         self.clear_crosshair()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        try:
+            self.placeholder_overlay.setGeometry(self.viewport().rect())
+        except Exception:
+            pass
+
+    def set_placeholder_text(self, title: str, subtitle: str = ""):
+        self._placeholder_text = title or ""
+        self._placeholder_subtext = subtitle or ""
+        if hasattr(self, "placeholder_title"):
+            self.placeholder_title.setText(self._placeholder_text)
+        if hasattr(self, "placeholder_subtitle"):
+            self.placeholder_subtitle.setText(self._placeholder_subtext)
+        if not self._has_image:
+            self.show_placeholder()
+
+    def show_placeholder(self):
+        self._has_image = False
+        self.original_pixmap = None
+        self.original_image_size = None
+        self.image_label.clear()
+        self.image_label.setAlignment(Qt.AlignCenter)
+        self.image_label.setWordWrap(True)
+        self.image_label.hide()
+
+        if hasattr(self, "placeholder_overlay"):
+            self.placeholder_title.setText(self._placeholder_text)
+            self.placeholder_subtitle.setText(self._placeholder_subtext)
+            self.placeholder_overlay.setGeometry(self.viewport().rect())
+            self.placeholder_overlay.show()
+
+        self.refresh_styles()
+
+    def refresh_styles(self):
+        self.image_label.setStyleSheet(
+            f"""
+            QLabel {{
+                background-color: {config.Colors.IMAGE_VIEWER_BG};
+                border: none
+                color: {config.Colors.TEXT_MUTED};
+                font-size: {config.Fonts.SIZE_BASE}px;
+                padding: 12px;
+            }}
+            """
+        )
+        if hasattr(self, "placeholder_overlay"):
+            self.placeholder_overlay.setStyleSheet(
+                f"""
+                QWidget#placeholderOverlay {{
+                    background: transparent;
+                }}
+                QLabel {{
+                    background: transparent;
+                }}
+                """
+            )
+            self.placeholder_title.setStyleSheet(
+                f"color: {config.Colors.TEXT}; font-size: {config.Fonts.SIZE_HEADER}px; font-weight: 700;"
+            )
+            self.placeholder_subtitle.setStyleSheet(
+                f"color: {config.Colors.TEXT_MUTED}; font-size: {config.Fonts.SIZE_SMALL}px;"
+            )
