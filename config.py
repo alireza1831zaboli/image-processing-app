@@ -1,7 +1,4 @@
-"""
-تنظیمات و ثابتهای برنامه - نسخه متعادل و Responsive
-Application Configuration - Balanced & Responsive
-"""
+from pathlib import Path
 
 # =============== تنظیمات UI ===============
 WINDOW_TITLE = "Image Processing & Photogrammetry"
@@ -50,28 +47,23 @@ _PALETTE_DARK = {
     "PANEL": "#22272e",
     "WIDGET": "#2d333b",
     "BORDER": "#444c56",
-
     # Accent (Teal/Cyan)
     "PRIMARY": "#0f6f73",
     "PRIMARY_LIGHT": "#148489",
     "PRIMARY_DARK": "#0b5b5e",
     "PRIMARY_HOVER": "#0078D4",
-
     # Text
     "TEXT": "#e6edf3",
     "TEXT_SECONDARY": "#9198a1",
     "TEXT_MUTED": "#656d76",
-
     # Status
     "SUCCESS": "#3fb950",
     "WARNING": "#d29922",
     "ERROR": "#ff5555",
     "INFO": "#58a6ff",
-
     # Image viewer
     "IMAGE_VIEWER_BG": "#1a1e23",
     "IMAGE_VIEWER_BORDER": "#444c56",
-
     # Hover
     "HOVER": "#373e47",
 }
@@ -82,28 +74,23 @@ _PALETTE_LIGHT = {
     "PANEL": "#ffffff",
     "WIDGET": "#f3f4f6",
     "BORDER": "#d0d7de",
-
     # Accent (Teal/Cyan) – هماهنگ با تم تیره
     "PRIMARY": "#0f6f73",
     "PRIMARY_LIGHT": "#148489",
     "PRIMARY_DARK": "#0b5b5e",
     "PRIMARY_HOVER": "#116a6e",
-
     # Text
     "TEXT": "#24292f",
     "TEXT_SECONDARY": "#57606a",
     "TEXT_MUTED": "#6e7781",
-
     # Status
     "SUCCESS": "#1a7f37",
     "WARNING": "#9a6700",
     "ERROR": "#cf222e",
     "INFO": "#0969da",
-
     # Image viewer
     "IMAGE_VIEWER_BG": "#f6f8fa",
     "IMAGE_VIEWER_BORDER": "#d0d7de",
-
     # Hover
     "HOVER": "#eaeef2",
 }
@@ -150,7 +137,6 @@ def set_theme(theme: str) -> str:
 
 
 # =============== تنظیمات استایل ===============
-
 class Fonts:
     """فونتهای برنامه - متعادل"""
 
@@ -185,3 +171,8 @@ class Layout:
 # =============== تنظیمات Threading ===============
 PROCESSING_TIMEOUT = 30
 THREAD_PRIORITY = "Normal"
+
+
+APP_DIR = Path(__file__).resolve().parent
+ICON_ICO = APP_DIR / "assets" / "icons" / "logo.ico"
+ICON_PNG = APP_DIR / "assets" / "icons" / "logo_1024.png"
