@@ -73,6 +73,7 @@ class MainWindow(QMainWindow):
         self.current_image = None
         self.processing_thread = None
         self._retired_threads = []
+        self.stages_window = None
         self.current_filter_key = "original"
         self.current_filter_name = Translations.get(
             "filter_original", self.current_lang
@@ -169,7 +170,6 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(self.console_group)
 
-        # نوار وضعیت
         self.create_status_bar()
         main_layout.addWidget(self.status_frame)
 
@@ -901,6 +901,12 @@ class MainWindow(QMainWindow):
     def on_processing_finished(self, processed_image):
         self.processed_viewer.hide_processing()
         """پایان پردازش"""
+
+        stages = None
+        if isinstance(processed_image, dict) and "result" in processed_image:
+            stages = processed_image.get("stages")
+            processed_image = processed_image["result"]
+
         self.current_image = processed_image
         self.processed_viewer.set_image(processed_image)
         self.processed_histogram.set_image(processed_image)
@@ -925,6 +931,41 @@ class MainWindow(QMainWindow):
         else:
             self.log(f"Filter applied successfully ({output_w}×{output_h})", "success")
 
+        if stages:
+            self.show_processing_stages(stages)
+
+    def show_processing_stages(self, stages):
+        """نمایش تصاویر مراحل پردازش در یک پنجره جداگانه"""
+        try:
+            from ui.stages_viewer_window import StagesViewerWindow
+
+            # اگر قبلاً بسته شده و DeleteOnClose بوده، destroyed باعث می‌شود self.stages_window None شود.
+            if self.stages_window is None:
+                self.stages_window = StagesViewerWindow(self)
+                self.stages_window.destroyed.connect(
+                    lambda *_: setattr(self, "stages_window", None)
+                )
+
+            self.stages_window.set_stages(stages)
+
+            # Try to place it next to the main window
+            try:
+                g = self.geometry()
+                self.stages_window.move(g.x() + g.width() + 12, g.y())
+            except Exception:
+                pass
+
+            # اگر پنجره hide شده یا بسته شده باشد، دوباره show شود.
+            if not self.stages_window.isVisible():
+                self.stages_window.show()
+            else:
+                self.stages_window.update()
+
+            # فقط برای اینکه کاربر تغییرات را ببیند (بدون اینکه همیشه فوکوس بدزدد)
+            self.stages_window.raise_()
+        except Exception as e:
+            self.log(f"Failed to show stages window: {e}", "warning")
+
     def on_processing_error(self, error_message: str):
         self.processed_viewer.hide_processing()
         """خطا در پردازش"""
@@ -944,6 +985,12 @@ class MainWindow(QMainWindow):
             self.processed_viewer.set_image(self.current_image)
             self.processed_histogram.set_image(self.current_image)
             self.update_filter_label("original")
+
+            # ✅ ریست پنل فیلترها (پارامترها هم باید به حالت پیش‌فرض برگردند)
+            try:
+                self.control_panel.reset_to_defaults()
+            except Exception:
+                pass
 
             self.log("Image reset successfully", "success")
 

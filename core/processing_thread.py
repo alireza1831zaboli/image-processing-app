@@ -1,21 +1,13 @@
-"""
-Thread پردازش تصویر
-Processing Thread
-"""
-
-import numpy as np
 from PySide6.QtCore import QThread, Signal
 from core.image_manager import ImageManager
 
 
 class ProcessingThread(QThread):
-    """ترد جداگانه برای پردازش تصاویر بدون فریز UI"""
+    result = Signal(object)
+    error = Signal(str)
+    progress = Signal(int)
 
-    result = Signal(np.ndarray)  # سیگنال اتمام با نتیجه
-    error = Signal(str)  # سیگنال خطا
-    progress = Signal(int)  # سیگنال پیشرفت (اختیاری)
-
-    def __init__(self, image: np.ndarray, filter_name: str, params: dict):
+    def __init__(self, image, filter_name: str, params: dict):
         super().__init__()
         self.image = image.copy() if image is not None else None
         self.filter_name = filter_name
@@ -23,13 +15,11 @@ class ProcessingThread(QThread):
         self._is_running = True
 
     def run(self):
-        """اجرای پردازش"""
         try:
             if self.image is None:
                 self.error.emit("تصویر معتبر نیست")
                 return
 
-            # اعمال فیلتر
             result = ImageManager.apply_filter(
                 self.image, self.filter_name, **self.params
             )
@@ -42,6 +32,5 @@ class ProcessingThread(QThread):
                 self.error.emit(str(e))
 
     def stop(self):
-        """توقف پردازش"""
         self._is_running = False
         self.quit()

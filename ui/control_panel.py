@@ -317,6 +317,29 @@ class ControlPanel(QWidget):
             params = self.get_current_params()
             self.filter_changed.emit(self.current_filter, params)
 
+    def reset_to_defaults(self):
+        """ریست کامل پنل فیلترها (دسته‌بندی/فیلتر/پارامترها) به حالت پیش‌فرض."""
+        if not hasattr(self, "category_combo") or not hasattr(self, "filter_combo"):
+            return
+
+        # جلوگیری از auto-apply هنگام ریست
+        self.category_combo.blockSignals(True)
+        self.filter_combo.blockSignals(True)
+
+        # Base همیشه اولین گزینه است
+        self.category_combo.setCurrentIndex(0)
+
+        # بازسازی لیست فیلترها و پارامترها
+        self.on_category_changed(0)
+
+        # اطمینان از انتخاب "original"
+        idx = self.filter_combo.findData("original")
+        if idx >= 0:
+            self.filter_combo.setCurrentIndex(idx)
+
+        self.filter_combo.blockSignals(False)
+        self.category_combo.blockSignals(False)
+
     def create_filter_group(self):
         """گروه فیلتر"""
         group = QGroupBox("🎨 " + Translations.get("filters_group", self.current_lang))
@@ -489,7 +512,9 @@ class ControlPanel(QWidget):
                 ("clahe", "CLAHE"),
             ],
             "edge": [
-                ("edge_canny", "Canny"),
+                # Project #4 expects the manual (step-by-step) Canny as the main option.
+                ("edge_canny_project4", "Canny"),
+                ("edge_canny", "Canny (OpenCV - آماده)"),
                 ("edge_sobel", "Sobel"),
                 ("edge_laplacian", "Laplacian"),
                 ("edge_scharr", "Scharr"),
@@ -743,6 +768,32 @@ class ControlPanel(QWidget):
                     "default": 200,
                     "step": 10,
                     "label": "Threshold 2",
+                },
+            },
+            "edge_canny_project4": {
+                "gaussian_ksize": {
+                    "type": "slider",
+                    "min": 3,
+                    "max": 15,
+                    "default": 5,
+                    "step": 2,
+                    "label": "Gaussian Kernel Size",
+                },
+                "low_threshold": {
+                    "type": "slider",
+                    "min": 0,
+                    "max": 255,
+                    "default": 50,
+                    "step": 5,
+                    "label": "Low Threshold",
+                },
+                "high_threshold": {
+                    "type": "slider",
+                    "min": 0,
+                    "max": 255,
+                    "default": 150,
+                    "step": 5,
+                    "label": "High Threshold",
                 },
             },
             # Color Filters
