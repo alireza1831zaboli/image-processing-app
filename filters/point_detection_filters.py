@@ -58,16 +58,12 @@ def _nms_local_maxima(
         window += 1
 
     resp = response.astype(np.float32)
-    # Dilation/erosion based local maxima
     kernel = np.ones((window, window), dtype=np.uint8)
     dilated = cv2.dilate(resp, kernel)
     eroded = cv2.erode(resp, kernel)
 
-    # Strict local maxima: equals local max AND strictly greater than local min
-    # (this removes flat plateaus that would otherwise create many "maxima").
     maxima = (resp == dilated) & (resp > eroded) & mask
 
-    # Remove NaNs / inf
     maxima &= np.isfinite(resp)
 
     ys, xs = np.where(maxima)
@@ -105,32 +101,28 @@ def _draw_points(
 
 # --- Moravec ---
 
+
 def _moravec_response(gray: np.ndarray) -> np.ndarray:
-    """Compute Moravec response map.
+    g = gray.astype(np.float32)
 
-    PDF version: For each pixel (excluding borders), compute W as mean of 3x3 neighborhood
-    at four offsets (-1,1), (0,1), (1,1), (1,0). For each offset, compute E = (I - W)^2
-    and take min(E1..E4) as final response.
-    """
-    g = gray
+    pad = 1
+    gp = cv2.copyMakeBorder(g, pad, pad, pad, pad, borderType=cv2.BORDER_REFLECT101)
+    mean_map = cv2.blur(gp, (3, 3))
 
-    # blur of shifted images approximates mean of 3x3 neighborhood at shifted position
+    h, w = g.shape[:2]
     offsets = [(-1, 1), (0, 1), (1, 1), (1, 0)]
     Es = []
     for dx, dy in offsets:
-        shifted = np.roll(g, shift=(dy, dx), axis=(0, 1))
-        W = cv2.blur(shifted, (3, 3))
-        E = (g - W) ** 2
-        Es.append(E)
+        Wm = mean_map[pad + dy : pad + dy + h, pad + dx : pad + dx + w]
+        Es.append((g - Wm) ** 2)
 
-    resp = np.minimum.reduce(Es)
+    resp = np.minimum.reduce(Es).astype(np.float32)
 
-    # Zero borders (where neighborhood would be invalid)
-    resp[:1, :] = 0
-    resp[-1:, :] = 0
-    resp[:, :1] = 0
-    resp[:, -1:] = 0
-    return resp.astype(np.float32)
+    valid = np.zeros_like(resp, dtype=bool)
+    if h >= 4 and w >= 5:
+        valid[1 : h - 2, 2 : w - 2] = True
+    resp[~valid] = 0.0
+    return resp
 
 
 def moravec_corner(
@@ -145,14 +137,20 @@ def moravec_corner(
     resp = _moravec_response(gray)
 
     mask = resp > float(threshold)
-    points = _nms_local_maxima(resp, mask, window=int(nms_window), max_points=int(max_points))
-    return _draw_points(image, points, radius=int(circle_radius), thickness=int(circle_thickness))
+    points = _nms_local_maxima(
+        resp, mask, window=int(nms_window), max_points=int(max_points)
+    )
+    return _draw_points(
+        image, points, radius=int(circle_radius), thickness=int(circle_thickness)
+    )
 
 
 # --- Haralick (Hessian-based per assignment) ---
 
-def _haralick_derivatives(gray: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Compute Dxx, Dyy, Dxy per masks described in the assignment PDF."""
+
+def _haralick_derivatives(
+    gray: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     g = gray
 
     Dxx_k = np.array([[1, -2, 1], [1, -2, 1], [1, -2, 1]], dtype=np.float32)
@@ -191,29 +189,28 @@ def haralick_corner(
     gray = _to_gray(image)
     dxx, dyy, dxy = _haralick_derivatives(gray)
 
-    # Hessian metrics
     w = (dxx * dyy) - (dxy * dxy)
     trace = dxx + dyy
 
-    # eigenvalues of 2x2 Hessian
-    disc = np.sqrt((dxx - dyy) ** 2 + 4.0 * (dxy ** 2))
+    disc = np.sqrt((dxx - dyy) ** 2 + 4.0 * (dxy**2))
     lam1 = (trace + disc) / 2.0
     lam2 = (trace - disc) / 2.0
 
     eps = 1e-9
-    denom = (lam1 + lam2)
+    denom = lam1 + lam2
     ratio = (lam1 - lam2) / (denom + eps)
-    q = 1.0 - (ratio ** 2)
+    q = 1.0 - (ratio**2)
 
-    # For scoring we use positive w only (corner-like).
     w_pos = np.maximum(w, 0).astype(np.float32)
 
-    # Threshold for w=det(Hessian). Assignment asks for a user-provided threshold.
-    # If thresh_w is 0 (default), we pick a robust auto-threshold using the 99th percentile
-    # of positive responses to keep the UI usable across different images.
     w_vals = w_pos[w_pos > 0]
     if w_vals.size == 0:
-        return _draw_points(image, np.empty((0, 2), dtype=np.int32), radius=int(circle_radius), thickness=int(circle_thickness))
+        return _draw_points(
+            image,
+            np.empty((0, 2), dtype=np.int32),
+            radius=int(circle_radius),
+            thickness=int(circle_thickness),
+        )
 
     w_thr = float(thresh_w)
     if w_thr <= 0:
@@ -221,11 +218,16 @@ def haralick_corner(
 
     mask = (w_pos > w_thr) & (q > float(thresh_q))
 
-    points = _nms_local_maxima(w_pos, mask, window=int(nms_window), max_points=int(max_points))
-    return _draw_points(image, points, radius=int(circle_radius), thickness=int(circle_thickness))
+    points = _nms_local_maxima(
+        w_pos, mask, window=int(nms_window), max_points=int(max_points)
+    )
+    return _draw_points(
+        image, points, radius=int(circle_radius), thickness=int(circle_thickness)
+    )
 
 
-# --- Harris (assignment formula) ---
+# --- Harris ---
+
 
 def harris_corner(
     image: np.ndarray,
@@ -250,24 +252,22 @@ def harris_corner(
 
     det = (dxx * dyy) - (dxy * dxy)
     tr = dxx + dyy
-    R = det - (tr ** 2)
+    R = (det - (tr * tr)).astype(np.float32)
 
-    # Threshold for R. Assignment asks for a user-provided threshold.
-    # If threshold_r is 0 (default), pick an auto-threshold from the upper tail.
-    R_thr = float(threshold_r)
-    if R_thr <= 0:
-        R_thr = float(np.percentile(R, 99))
+    score = (-R).astype(np.float32)
 
-    mask = R > R_thr
+    finite = np.isfinite(score)
+    thr = float(threshold_r)
+    mask = finite & (score > thr)
 
-    # Use R as score for NMS (mask limits candidates)
-    score = R.astype(np.float32)
+    points = _nms_local_maxima(
+        score, mask, window=int(nms_window), max_points=int(max_points)
+    )
+    return _draw_points(
+        image, points, radius=int(circle_radius), thickness=int(circle_thickness)
+    )
 
-    points = _nms_local_maxima(score, mask, window=int(nms_window), max_points=int(max_points))
-    return _draw_points(image, points, radius=int(circle_radius), thickness=int(circle_thickness))
 
-
-# Registry for ImageManager
 FILTER_MAP = {
     "moravec_corner": moravec_corner,
     "haralick_corner": haralick_corner,
