@@ -9,6 +9,7 @@ from .photogrammetry import FILTER_MAP as PHOTO_FILTERS
 from .creative_filters import FILTER_MAP as CREATIVE_FILTERS
 from .color_filters import FILTER_MAP as COLOR_FILTERS
 from .transformation_filters import FILTER_MAP as TRANSFORM_FILTERS
+from .segmentation_filters import FILTER_MAP as SEGMENTATION_FILTERS
 
 __all__ = [
     "BASE_FILTERS",
@@ -18,4 +19,5 @@ __all__ = [
     "CREATIVE_FILTERS",
     "COLOR_FILTERS",
     "TRANSFORM_FILTERS",
+    "SEGMENTATION_FILTERS",
 ]

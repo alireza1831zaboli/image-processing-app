@@ -71,11 +71,12 @@ class Translations:
         },
         # دسته‌بندی فیلترها
         "category_base": {"fa": "پایه", "en": "Base"},
-        "category_enhancement": {"fa": "لبه‌یابی", "en": "Enhancement"},
+        "category_edge_detection": {"fa": "لبه‌یابی", "en": "Edge Detection"},
         "category_photogrammetry": {"fa": "فتوگرامتری", "en": "Photogrammetry"},
         "category_advanced": {"fa": "خلاقانه", "en": "Creative"},
         "category_transformation": {"fa": "تبدیل هندسی", "en": "Transformation"},
         "category_point_detection": {"fa": "تشخیص نقاط", "en": "Point Detection"},
+        "category_segmentation": {"fa": "سگمنتیشن", "en": "Segmentation"},
         # فیلترهای Transformation - جدید! ✅
         "filter_transform_direct": {"fa": "نقشه‌برداری مستقیم", "en": "Direct Map"},
         "filter_transform_inverse_nn": {
@@ -249,6 +250,12 @@ class Translations:
         "preset_emboss": {"fa": "برجسته", "en": "Emboss"},
         "preset_laplacian": {"fa": "لاپلاسیان", "en": "Laplacian"},
         "padding_replicate": {"fa": "تکرار لبه‌ها", "en": "Replicate (Repeat Edges)"},
+# Segmentation Filters
+"filter_seg_watershed_manual": {"fa": "واترشد (دستی)", "en": "Watershed (Manual)"},
+"filter_seg_watershed_opencv": {"fa": "واترشد (OpenCV)", "en": "Watershed (OpenCV)"},
+"filter_seg_kmeans": {"fa": "سگمنتیشن K-Means", "en": "K-Means Segmentation"},
+"filter_seg_meanshift": {"fa": "سگمنتیشن Mean Shift", "en": "Mean Shift Segmentation"},
+
 
     }
 

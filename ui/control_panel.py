@@ -1,8 +1,3 @@
-"""
-پنل کنترل با پارامترهای داینامیک
-Control Panel with Dynamic Parameters
-"""
-
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -36,8 +31,6 @@ except ImportError:
 
 
 class ControlPanel(QWidget):
-    """پنل کنترل"""
-
     filter_changed = Signal(str, dict)
     load_clicked = Signal()
     save_clicked = Signal()
@@ -95,7 +88,6 @@ class ControlPanel(QWidget):
             config.Layout.PADDING_SMALL,
         )
 
-        # عنوان
         if USE_TRANSLATIONS:
             title_text = Translations.get("control_panel", self.current_lang)
         else:
@@ -114,25 +106,19 @@ class ControlPanel(QWidget):
         )
         main_layout.addWidget(title)
 
-        # ✅ اول پارامترها رو بساز (قبل از فیلترها!)
         self.params_group = self.create_params_group()
 
-        # ✅ بعد فیلترها
         filter_group = self.create_filter_group()
         scroll_layout.addWidget(filter_group)
 
-        # ✅ بعد پارامترها
         scroll_layout.addWidget(self.params_group)
 
-        # ✅ Apply + Toggle
         self.apply_group = self.create_apply_group()
         scroll_layout.addWidget(self.apply_group)
 
-        # عملیات
         self.operations_group = self.create_operations_group()
         scroll_layout.addWidget(self.operations_group)
 
-        # Zoom
         self.zoom_group = self.create_zoom_group()
         scroll_layout.addWidget(self.zoom_group)
 
@@ -141,7 +127,6 @@ class ControlPanel(QWidget):
         scroll.setWidget(scroll_content)
         main_layout.addWidget(scroll, 1)
 
-        # راهنما
         self.hint_label = QLabel(
             "💡 " + Translations.get("hint_default", self.current_lang)
         )
@@ -227,12 +212,10 @@ class ControlPanel(QWidget):
         return super().eventFilter(obj, event)
 
     def create_apply_group(self):
-        """گروه Apply و Auto-Apply"""
         group = QGroupBox("🎯 " + Translations.get("apply_group", self.current_lang))
         layout = QVBoxLayout()
         layout.setSpacing(6)
 
-        # ✅ Toggle برای Auto-Apply
         auto_layout = QHBoxLayout()
         self.auto_apply_check = QCheckBox(
             Translations.get("auto_apply", self.current_lang)
@@ -243,13 +226,11 @@ class ControlPanel(QWidget):
             "When disabled, you need to click Apply button."
         )
 
-        # ✅ استفاده از toggled به جای stateChanged
         self.auto_apply_check.toggled.connect(self.on_auto_apply_toggled)
 
         auto_layout.addWidget(self.auto_apply_check)
         layout.addLayout(auto_layout)
 
-        # ✅ دکمه Apply
         self.apply_btn = QPushButton(
             "✅ " + Translations.get("apply_filter_btn", self.current_lang)
         )
@@ -262,16 +243,13 @@ class ControlPanel(QWidget):
         return group
 
     def on_auto_apply_toggled(self, checked):
-        """✅ تغییر حالت Auto-Apply - با toggled signal"""
         was_auto = self.auto_apply
         self.auto_apply = checked
 
         print(f"[Auto-Apply] Toggled: {was_auto} → {self.auto_apply}")
 
-        # ✅ فعال/غیرفعال کردن دکمه Apply
         self.apply_btn.setEnabled(not self.auto_apply)
 
-        # ✅ اگر auto-apply فعال شد و فیلتر داریم، فوراً اعمال کن
         if self.auto_apply and not was_auto and self.current_filter:
             print(f"[Auto-Apply] Just enabled! Applying filter: {self.current_filter}")
             params = self.get_current_params()
@@ -294,10 +272,8 @@ class ControlPanel(QWidget):
             self.reconnect_param_signals()
 
     def reconnect_param_signals(self):
-        """✅ اتصال مجدد signal های پارامترها"""
         for param_name, widget in self.param_widgets.items():
             if isinstance(widget, QSlider):
-                # قطع و وصل مجدد
                 try:
                     widget.valueChanged.disconnect()
                 except:
@@ -312,27 +288,21 @@ class ControlPanel(QWidget):
                 widget.valueChanged.connect(self.on_params_changed)
 
     def on_apply_clicked(self):
-        """کلیک روی دکمه Apply"""
         if self.current_filter:
             params = self.get_current_params()
             self.filter_changed.emit(self.current_filter, params)
 
     def reset_to_defaults(self):
-        """ریست کامل پنل فیلترها (دسته‌بندی/فیلتر/پارامترها) به حالت پیش‌فرض."""
         if not hasattr(self, "category_combo") or not hasattr(self, "filter_combo"):
             return
 
-        # جلوگیری از auto-apply هنگام ریست
         self.category_combo.blockSignals(True)
         self.filter_combo.blockSignals(True)
 
-        # Base همیشه اولین گزینه است
         self.category_combo.setCurrentIndex(0)
 
-        # بازسازی لیست فیلترها و پارامترها
         self.on_category_changed(0)
 
-        # اطمینان از انتخاب "original"
         idx = self.filter_combo.findData("original")
         if idx >= 0:
             self.filter_combo.setCurrentIndex(idx)
@@ -341,12 +311,10 @@ class ControlPanel(QWidget):
         self.category_combo.blockSignals(False)
 
     def create_filter_group(self):
-        """گروه فیلتر"""
         group = QGroupBox("🎨 " + Translations.get("filters_group", self.current_lang))
         layout = QVBoxLayout()
         layout.setSpacing(6)
 
-        # دستهبندی
         self.category_combo = QComboBox()
         self.category_combo.setMinimumHeight(config.Layout.CONTROL_HEIGHT)
 
@@ -355,12 +323,16 @@ class ControlPanel(QWidget):
                 "🎨 " + Translations.get("category_base", self.current_lang), "base"
             )
             self.category_combo.addItem(
-                "✨ " + Translations.get("category_enhancement", self.current_lang),
+                "✨ " + Translations.get("category_edge_detection", self.current_lang),
                 "edge",
             )
             self.category_combo.addItem(
                 "📷 " + Translations.get("category_photogrammetry", self.current_lang),
                 "photogrammetry",
+            )
+            self.category_combo.addItem(
+                "🧩 " + Translations.get("category_segmentation", self.current_lang),
+                "segmentation",
             )
             self.category_combo.addItem("🎨 Color", "color")
             self.category_combo.addItem(
@@ -377,6 +349,7 @@ class ControlPanel(QWidget):
             self.category_combo.addItem("🎨 Base", "base")
             self.category_combo.addItem("✨ Edge Detection", "edge")
             self.category_combo.addItem("📷 Photogrammetry", "photogrammetry")
+            self.category_combo.addItem("🧩 Segmentation", "segmentation")
             self.category_combo.addItem("🌈 Color", "color")
             self.category_combo.addItem("🎭 Creative", "creative")
             self.category_combo.addItem("🔲 Convolution", "convolution")
@@ -386,7 +359,6 @@ class ControlPanel(QWidget):
         self.category_combo.currentIndexChanged.connect(self.on_category_changed)
         layout.addWidget(self.category_combo)
 
-        # فیلتر
         self.filter_combo = QComboBox()
         self.filter_combo.setMinimumHeight(config.Layout.CONTROL_HEIGHT)
         self.filter_combo.currentIndexChanged.connect(self.on_filter_changed)
@@ -394,22 +366,18 @@ class ControlPanel(QWidget):
 
         group.setLayout(layout)
 
-        # پر کردن فیلترها
         self.populate_filters()
 
         return group
 
     def create_params_group(self):
-        """گروه پارامترها - داینامیک"""
         group = QGroupBox("⚙️ " + Translations.get("params_group", self.current_lang))
 
-        # Layout اصلی که داینامیک میشه
         self.params_container = QWidget()
         self.params_layout = QVBoxLayout(self.params_container)
         self.params_layout.setSpacing(6)
         self.params_layout.setContentsMargins(0, 0, 0, 0)
 
-        # پیغام پیشفرض
         self.no_params_label = QLabel(
             "ℹ️ " + Translations.get("no_params", self.current_lang)
         )
@@ -433,7 +401,6 @@ class ControlPanel(QWidget):
         return group
 
     def create_operations_group(self):
-        """گروه عملیات"""
         group = QGroupBox(
             "🔧 " + Translations.get("operations_group", self.current_lang)
         )
@@ -466,7 +433,6 @@ class ControlPanel(QWidget):
         return group
 
     def create_zoom_group(self):
-        """گروه Zoom"""
         group = QGroupBox("🔍 " + Translations.get("zoom_group", self.current_lang))
         layout = QGridLayout()
         layout.setSpacing(6)
@@ -499,7 +465,6 @@ class ControlPanel(QWidget):
         return group
 
     def populate_filters(self):
-        """پر کردن لیست فیلترها"""
         self.filters_data = {
             "base": [
                 ("original", "Original"),
@@ -514,7 +479,7 @@ class ControlPanel(QWidget):
             "edge": [
                 # Project #4 expects the manual (step-by-step) Canny as the main option.
                 ("edge_canny_project4", "Canny"),
-                ("edge_canny", "Canny (OpenCV - آماده)"),
+                ("edge_canny", "Canny (OpenCV)"),
                 ("edge_sobel", "Sobel"),
                 ("edge_laplacian", "Laplacian"),
                 ("edge_scharr", "Scharr"),
@@ -529,6 +494,12 @@ class ControlPanel(QWidget):
                 ("morphology_dilate", "Morphology Dilate"),
                 ("morphology_open", "Morphology Open"),
                 ("morphology_close", "Morphology Close"),
+            ],
+            "segmentation": [
+                ("seg_watershed_manual", "Watershed (Manual)"),
+                ("seg_watershed_opencv", "Watershed (OpenCV)"),
+                ("seg_kmeans", "K-Means (OpenCV)"),
+                ("seg_meanshift", "Mean Shift (OpenCV)"),
             ],
             "color": [
                 ("hsv", "HSV"),
@@ -591,7 +562,7 @@ class ControlPanel(QWidget):
             self.category_combo.setCurrentIndex(0)
             self.filter_combo.blockSignals(False)
             self.category_combo.blockSignals(False)
-            category = "base"  # ← اجباری به base تغییر بده
+            category = "base"
 
         self.filter_combo.blockSignals(True)
         self.filter_combo.clear()
@@ -610,7 +581,6 @@ class ControlPanel(QWidget):
                 self.create_filter_params(filter_key)
 
     def on_filter_changed(self):
-        """تغییر فیلتر - بروزرسانی پارامترها"""
         filter_key = self.filter_combo.currentData()
 
         if not filter_key:
@@ -634,25 +604,20 @@ class ControlPanel(QWidget):
             self.filter_changed.emit(filter_key, params)
 
     def clear_params(self):
-        """پاک کردن همه پارامترها"""
         if not hasattr(self, "params_container"):
             return
 
-        # ✅ حذف container قدیمی
         old_container = self.params_container
         old_container.setParent(None)
         old_container.deleteLater()
 
-        # ✅ ساخت container جدید
         self.params_container = QWidget()
         self.params_layout = QVBoxLayout(self.params_container)
         self.params_layout.setSpacing(6)
         self.params_layout.setContentsMargins(0, 0, 0, 0)
 
-        # ✅ اضافه کردن به group
         self.params_group.layout().addWidget(self.params_container)
 
-        # پاک کردن دیکشنری
         self.param_widgets.clear()
 
     def create_filter_params(self, filter_key):
@@ -662,7 +627,6 @@ class ControlPanel(QWidget):
         params_config = self.get_params_config(filter_key)
 
         if not params_config:
-            # اگر پارامتری نداشت
             self.no_params_label = QLabel(
                 "ℹ️ " + Translations.get("no_params", self.current_lang)
             )
@@ -679,14 +643,11 @@ class ControlPanel(QWidget):
             self.params_layout.addWidget(self.no_params_label)
             return
 
-        # ساخت پارامترها
         for param_name, param_config in params_config.items():
             self.create_param_widget(param_name, param_config)
 
     def get_params_config(self, filter_key):
-        """تعریف پارامترها برای هر فیلتر"""
         configs = {
-            # Base Filters
             "blur": {
                 "ksize": {
                     "type": "slider",
@@ -794,6 +755,137 @@ class ControlPanel(QWidget):
                     "default": 150,
                     "step": 5,
                     "label": "High Threshold",
+                },
+            },
+            # Segmentation Filters
+            "seg_watershed_manual": {
+                "blur_ksize": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 31,
+                    "default": 7,
+                    "step": 2,
+                    "label": "Gaussian Blur (Kernel)",
+                },
+                "sobel_ksize": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 7,
+                    "default": 3,
+                    "step": 2,
+                    "label": "Sobel Kernel",
+                },
+                "k_markers": {
+                    "type": "slider",
+                    "min": 2,
+                    "max": 12,
+                    "default": 6,
+                    "step": 1,
+                    "label": "Marker Clusters (K)",
+                },
+                "seed_erosion_iter": {
+                    "type": "slider",
+                    "min": 0,
+                    "max": 12,
+                    "default": 3,
+                    "step": 1,
+                    "label": "Seed Erosion (iters)",
+                },
+                "min_seed_area": {
+                    "type": "slider",
+                    "min": 0,
+                    "max": 2000,
+                    "default": 80,
+                    "step": 20,
+                    "label": "Min Seed Area",
+                },
+                "connectivity": {
+                    "type": "slider",
+                    "min": 4,
+                    "max": 8,
+                    "default": 4,
+                    "step": 4,
+                    "label": "Connectivity (4/8)",
+                },
+                "boundary_thickness": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 7,
+                    "default": 2,
+                    "step": 1,
+                    "label": "Boundary Thickness",
+                },
+                "overlay_alpha": {
+                    "type": "double",
+                    "min": 0.0,
+                    "max": 1.0,
+                    "default": 0.9,
+                    "step": 0.05,
+                    "decimals": 2,
+                    "label": "Overlay Alpha",
+                },
+            },
+            "seg_watershed_opencv": {
+                "blur_ksize": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 31,
+                    "default": 7,
+                    "step": 2,
+                    "label": "Gaussian Blur (Kernel)",
+                },
+                "morph_ksize": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 31,
+                    "default": 3,
+                    "step": 2,
+                    "label": "Morphology Kernel",
+                },
+                "dist_ratio": {
+                    "type": "double",
+                    "min": 0.05,
+                    "max": 0.95,
+                    "default": 0.4,
+                    "step": 0.05,
+                    "decimals": 2,
+                    "label": "Distance Ratio",
+                },
+                "dilate_iter": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 10,
+                    "default": 3,
+                    "step": 1,
+                    "label": "Dilate Iterations",
+                },
+            },
+            "seg_kmeans": {
+                "k": {
+                    "type": "slider",
+                    "min": 2,
+                    "max": 20,
+                    "default": 6,
+                    "step": 1,
+                    "label": "Clusters (K)",
+                },
+            },
+            "seg_meanshift": {
+                "sp": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 40,
+                    "default": 20,
+                    "step": 1,
+                    "label": "Spatial Radius (sp)",
+                },
+                "sr": {
+                    "type": "slider",
+                    "min": 1,
+                    "max": 60,
+                    "default": 40,
+                    "step": 1,
+                    "label": "Color Radius (sr)",
                 },
             },
             # Color Filters
@@ -1117,12 +1209,9 @@ class ControlPanel(QWidget):
         return configs.get(filter_key, {})
 
     def create_param_widget(self, param_name, config):
-        """ساخت ویجت پارامتر"""
         if not hasattr(self, "params_layout"):
             return
 
-        # Use a row widget so layouts can properly calculate size hints.
-        # This prevents the left panel from "breaking" when params count grows.
         row = QWidget()
         grid = QGridLayout(row)
         grid.setContentsMargins(0, 0, 0, 0)
@@ -1130,7 +1219,6 @@ class ControlPanel(QWidget):
         grid.setVerticalSpacing(0)
         grid.setColumnStretch(1, 1)  # control expands
 
-        # Label (wraps if needed)
         label = QLabel(config["label"] + ":")
         label.setWordWrap(True)
         label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
@@ -1158,10 +1246,8 @@ class ControlPanel(QWidget):
             value_label.setMinimumWidth(44)
             value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
-            # ✅ Lambda برای update label
             slider.valueChanged.connect(lambda v: value_label.setText(str(v)))
 
-            # ✅ اتصال به on_params_changed
             slider.valueChanged.connect(self.on_params_changed)
 
             grid.addWidget(slider, 0, 1)
@@ -1178,7 +1264,6 @@ class ControlPanel(QWidget):
             spinbox.setMinimumHeight(28)
             spinbox.setDecimals(config.get("decimals", 3))
 
-            # ✅ اتصال به on_params_changed
             spinbox.valueChanged.connect(self.on_params_changed)
 
             grid.addWidget(spinbox, 0, 1, 1, 2)
@@ -1188,7 +1273,6 @@ class ControlPanel(QWidget):
         self.params_layout.addWidget(row)
 
     def get_current_params(self):
-        """دریافت پارامترهای فعلی"""
         params = {}
 
         for param_name, widget in self.param_widgets.items():
@@ -1202,7 +1286,6 @@ class ControlPanel(QWidget):
         return params
 
     def on_params_changed(self):
-        """✅ تغییر پارامترها با لاگ"""
         print(f"[Params] Changed. Auto-apply: {self.auto_apply}")  # Debug
 
         if self.auto_apply and self.current_filter:
@@ -1217,12 +1300,10 @@ class ControlPanel(QWidget):
             )
 
     def set_show_hints(self, enabled: bool):
-        """نمایش/مخفی کردن راهنمای پایین پنل"""
         if hasattr(self, "hint_label") and self.hint_label is not None:
             self.hint_label.setVisible(bool(enabled))
 
     def set_language(self, lang: str):
-        """اعمال زبان در لحظه برای متن‌های پنل کنترل"""
         if not USE_TRANSLATIONS:
             return
         self.current_lang = lang or "fa"

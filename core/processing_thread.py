@@ -17,7 +17,7 @@ class ProcessingThread(QThread):
     def run(self):
         try:
             if self.image is None:
-                self.error.emit("تصویر معتبر نیست")
+                self.error.emit("Image is not valid")
                 return
 
             result = ImageManager.apply_filter(

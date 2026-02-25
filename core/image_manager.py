@@ -1,15 +1,9 @@
-"""
-مدیریت تصاویر - با پشتیبانی Convolution
-Image Manager - با فیلترهای کانوولوشنی
-"""
-
 import cv2
 import os
 import numpy as np
 from typing import Optional
 from pathlib import Path
 
-# ایمپورت تمام فیلترها
 from filters.base_filters import FILTER_MAP as BASE_FILTERS
 from filters.edge_filters import FILTER_MAP as EDGE_FILTERS
 from filters.photogrammetry import FILTER_MAP as PHOTO_FILTERS
@@ -18,12 +12,10 @@ from filters.color_filters import FILTER_MAP as COLOR_FILTERS
 from filters.convolution_filters import FILTER_MAP as CONV_FILTERS
 from filters.transformation_filters import FILTER_MAP as TRANSFORM_FILTERS
 from filters.point_detection_filters import FILTER_MAP as POINT_DETECTION_FILTERS
+from filters.segmentation_filters import FILTER_MAP as SEGMENTATION_FILTERS
 
 
 class ImageManager:
-    """مدیریت بارگذاری، ذخیره و پردازش تصاویر"""
-
-    # ترکیب تمام فیلترها
     ALL_FILTERS = {
         **BASE_FILTERS,
         **EDGE_FILTERS,
@@ -33,11 +25,11 @@ class ImageManager:
         **CONV_FILTERS,
         **TRANSFORM_FILTERS,
         **POINT_DETECTION_FILTERS,
+        **SEGMENTATION_FILTERS,
     }
 
     @staticmethod
     def load_image(file_path: str) -> Optional[np.ndarray]:
-        """بارگذاری تصویر از فایل"""
         try:
             image = cv2.imread(file_path)
             if image is None:
@@ -49,7 +41,6 @@ class ImageManager:
 
     @staticmethod
     def save_image(file_path: str, image: np.ndarray, quality: int = 90) -> bool:
-        """ذخیره تصویر در فایل (با پشتیبانی کیفیت برای JPEG/WEBP)"""
         try:
             ext = os.path.splitext(file_path)[1].lower()
 
@@ -82,12 +73,10 @@ class ImageManager:
 
     @staticmethod
     def apply_filter(image: np.ndarray, filter_name: str, **params) -> np.ndarray:
-        """اعمال فیلتر به تصویر"""
         if image is None or image.size == 0:
             return image
 
         try:
-            # پیدا کردن و اجرای فیلتر
             if filter_name in ImageManager.ALL_FILTERS:
                 filter_func = ImageManager.ALL_FILTERS[filter_name]
                 return filter_func(image, **params)
@@ -100,7 +89,6 @@ class ImageManager:
 
     @staticmethod
     def get_filter_list() -> dict:
-        """دریافت لیست تمام فیلترها به تفکیک دسته"""
         return {
             "basic": list(BASE_FILTERS.keys()),
             "edge": list(EDGE_FILTERS.keys()),
@@ -110,11 +98,11 @@ class ImageManager:
             "convolution": list(CONV_FILTERS.keys()),
             "transformation": list(TRANSFORM_FILTERS.keys()),
             "point_detection": list(POINT_DETECTION_FILTERS.keys()),
+            "segmentation": list(SEGMENTATION_FILTERS.keys()),
         }
 
     @staticmethod
     def validate_image(image: np.ndarray) -> bool:
-        """اعتبارسنجی تصویر"""
         if image is None:
             return False
         if image.size == 0:
@@ -125,7 +113,6 @@ class ImageManager:
 
     @staticmethod
     def get_image_info(image: np.ndarray) -> dict:
-        """دریافت اطلاعات تصویر"""
         if not ImageManager.validate_image(image):
             return {}
 
